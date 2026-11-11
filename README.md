@@ -8,27 +8,51 @@
 - 快乐8：1–80 选 10
 - 排列五：万、千、百、十、个位各 0–9 选 1
 - 公式：双色球/大乐透 **270 个**（前区 173 / 后区 97）；3D/排列五每位 **94 个**数字公式；快乐8 **173 个**号码公式
-- 托管在 GitHub Pages，手机流量即可访问，不依赖电脑常驻
+- 可托管在私有 GitHub 仓库（默认，代码别人看不到）；免费账户的私有仓库不能发布 Pages，网页请用本地 `node scripts/serve.mjs` 打开
 
 > 彩票是独立随机事件，本项目只是对历史数据做数学练习，**不能预测开奖结果**，也不构成投注建议。请理性购彩，未满 18 周岁禁止购彩。
 
 ---
 
-## 一、部署到 GitHub Pages（三种方式，任选一种）
+## 一、部署
 
-仓库地址可以放在任意子路径，例如 `https://用户名.github.io/lottery-lab/`，所有链接均为相对路径。
+> **隐私优先**：部署脚本默认创建**私有**仓库，别人看不到代码。
+> GitHub 的两个硬限制：**Pages 站点本身总是公开的**（没有密码）；**免费账户的私有仓库不能发布 Pages**。想要「带密码、只给自己看」，用下面的 Cloudflare 方式。
 
-### 方式 A：网页上传（不需要命令行，推荐）
+### 方式 ★：Cloudflare Pages + 邮箱验证（推荐，真正带密码）
+
+效果：只有你自己的邮箱能进；别人就算拿到网址，也会被挡在 Cloudflare 登录页。全免费（Access 免费版支持 50 个用户）。
+
+1. 注册 Cloudflare（免费）：<https://dash.cloudflare.com/sign-up>
+2. 左侧 **Workers & Pages → Create → Pages → Connect to Git**，授权 GitHub，选择**私有仓库** `xiaomayi1899/lottery-lab2`。
+3. 构建设置：
+   - Framework preset：**None**
+   - Build command：**留空**
+   - Build output directory：`/`
+   - 点 **Save and Deploy**，得到 `https://<项目名>.pages.dev`
+4. **关掉预览地址**（否则预览子域会绕过密码）：项目 → **Settings → Builds & deployments → Preview deployments**，选择只保留 Production。
+5. 加访问门禁：**Zero Trust → Access → Applications → Add an application → Self-hosted**
+   - Application name：数彩实验室
+   - 域名填两条：`<项目名>.pages.dev` 和 `*.<项目名>.pages.dev`
+   - Policy：Action **Allow**，Include **Emails** = 你的邮箱
+   - 登录方式选 **One-time PIN**（邮箱验证码，不需要第三方登录）
+6. 用你的邮箱打开 `https://<项目名>.pages.dev`，收验证码后进入；别人打开只会看到登录页。
+
+项目根目录已经放好两个文件，部署后自动生效：
+
+- `_headers`：入口与 `sw.js` 不缓存、静态资源短缓存（以后改完立刻能看到新版）
+- `robots.txt`：`Disallow: /`，禁止搜索引擎收录
+
+> 数据仍可自动更新：私有仓库的 GitHub Actions 每天抓取并提交，Cloudflare 会在提交后自动重新部署。
+
+### 方式 A：网页上传（不需要命令行）
 
 1. 登录 GitHub，右上角 **+ → New repository**。
-2. 仓库名填 `lottery-lab`（可自定义），选择 **Public**，**不要**勾选 “Add a README file”，点 **Create repository**。
+2. 仓库名填 `lottery-lab`（可自定义），选择 **Private**（代码只有你能看到），**不要**勾选 “Add a README file”，点 **Create repository**。
 3. 在空仓库页面点 **Add file → Upload files**。
 4. 把本项目**所有文件和文件夹**拖进上传区（必须保留 `assets/`、`data/`、`scripts/`、`.github/` 的目录结构），点 **Commit changes**。
    - 如果网页上传不显示 `.github` 隐藏文件夹，可以先忽略它，后面再单独添加自动更新工作流（见第四节）。
-5. 打开仓库 **Settings → Pages**：
-   - **Source** 选择 **Deploy from a branch**
-   - **Branch** 选择 `main`，目录选择 `/ (root)`，点 **Save**
-6. 等 1–2 分钟，访问 `https://你的用户名.github.io/lottery-lab/`。
+5. 私有仓库要发布网页需要 **GitHub Pro/Team**：升级后在 **Settings → Pages** 选择 `main` / `/ (root)`。免费账户请直接用下面的方式 D 在本地打开。
 
 ### 方式 B：一条命令部署（GitHub API，适合想省事的人）
 
@@ -42,10 +66,13 @@
 
 ```powershell
 $env:GITHUB_TOKEN = "ghp_你的token"
-node scripts/deploy.mjs 你的用户名/lottery-lab --create --pages
+# 默认：创建私有仓库并上传，不开启 Pages
+node scripts/deploy.mjs 你的用户名/lottery-lab --create
+# 私有仓库 + 已升级 Pro，才加 --pages 发布站点
+# 只有确认愿意公开代码时，才加 --public
 ```
 
-脚本会：创建公开仓库（已存在则复用）→ 逐个上传文件 → 开启 GitHub Pages → 打印访问地址。
+脚本会：创建**私有**仓库（已存在则复用）→ 逐个上传文件 → 打印结果。没有 `--pages` 就不会启用 Pages。
 token 只从环境变量读取，不会写入任何文件；用完可以关掉终端或执行 `Remove-Item Env:GITHUB_TOKEN`。
 
 ### 方式 C：Git 命令行
@@ -59,7 +86,16 @@ git remote add origin https://github.com/你的用户名/lottery-lab.git
 git push -u origin main
 ```
 
-然后按方式 A 的第 5 步开启 Pages。
+推送后按方式 A 的第 5 步决定要不要开启 Pages。
+
+### 方式 D：只在本地用（最私密，完全不上传）
+
+```bash
+node scripts/serve.mjs 4173
+# 浏览器打开 http://127.0.0.1:4173/
+```
+
+代码与数据只留在本机，不经过 GitHub，任何人都看不到。
 
 ---
 

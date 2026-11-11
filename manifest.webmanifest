@@ -1,0 +1,17 @@
+{
+  "name": "数彩实验室 · 双色球/大乐透公式投票",
+  "short_name": "数彩实验室",
+  "description": "148 个数学公式独立选号，按回测命中率加权投票，附双色球/大乐透完整走势图。",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#05070d",
+  "theme_color": "#05070d",
+  "categories": ["entertainment", "utilities"],
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

@@ -8,7 +8,7 @@
   if (!Core || !F) return;
 
   var L = Core.Lib;
-  var VERSION = '1.0.0';
+  var VERSION = '1.1.0';
   var $view = document.getElementById('view');
   var $toast = document.getElementById('toast');
   var $tabbar = document.getElementById('tabbar');
@@ -217,9 +217,14 @@
     var s = f.summary;
     var bs = b.summary;
 
-    state.alts = [1, 2, 3].filter(function (s) { return s !== state.salt; }).slice(0, 2).map(function (salt) {
-      var af = analysis(state.game, 'front', salt);
-      var ab = analysis(state.game, 'back', salt);
+    var altSalts = [1, 2, 3].filter(function (s) { return s !== state.salt; }).slice(0, 2);
+    var avoidFront = f.numbers.slice();
+    var avoidBack = b.numbers.slice();
+    state.alts = altSalts.map(function (salt) {
+      var af = Core.reweight(gameData(state.game), baseF, salt, avoidFront.slice());
+      var ab = Core.reweight(gameData(state.game), baseB, salt, avoidBack.slice());
+      avoidFront = avoidFront.concat(af.numbers);
+      avoidBack = avoidBack.concat(ab.numbers);
       return { salt: salt, front: af.numbers, back: ab.numbers };
     });
 
@@ -628,7 +633,7 @@
 
       '<section class="card"><div class="card-title">它怎么工作</div><div class="prose">' +
       '<p><b>1. 每个公式只推荐一个号码。</b>前区公式只在前区（红球 1–33 / 前区 1–35）里选，后区公式只在后区（蓝球 1–16 / 后区 1–12）里选，互不混用。</p>' +
-      '<p><b>2. 滚动回测加权。</b>每个公式用最近 40 期做“假装不知道当期”的回测，命中率越高，投票权重越大。权重区间约为 0.42–1.67，避免单一公式独裁。</p>' +
+      '<p><b>2. 滚动回测加权。</b>每个公式用最近 40 期做“假装不知道当期”的回测，并对命中率做贝叶斯平滑，避免小样本过拟合；平滑命中率越高，投票权重越大。</p>' +
       '<p><b>3. 加权投票。</b>所有公式给各自推荐的号码投票，按加权票数从高到低取前区 6/5 个、后区 1/2 个，组成一注。</p>' +
       '<p><b>4. 备选票。</b>“换一注”会对主推号码整体降权，并按号码加入确定性扰动，让票数自然流向次优号码；不使用随机数，同一组编号随时可复现。</p>' +
       '</div></section>' +
@@ -743,9 +748,14 @@
       copyText(ticketText(f.numbers, b.numbers));
     } else if (action === 'copy-alt') {
       var salt = Number(el.getAttribute('data-salt'));
-      var af = analysis(state.game, 'front', salt);
-      var ab = analysis(state.game, 'back', salt);
-      copyText(ticketText(af.numbers, ab.numbers));
+      var alt = (state.alts || []).filter(function (a) { return a.salt === salt; })[0];
+      if (alt) {
+        copyText(ticketText(alt.front, alt.back));
+      } else {
+        var fallbackFront = analysis(state.game, 'front', salt);
+        var fallbackBack = analysis(state.game, 'back', salt);
+        copyText(ticketText(fallbackFront.numbers, fallbackBack.numbers));
+      }
     } else if (action === 'load-more') {
       state.historyLimit += 60;
       render();

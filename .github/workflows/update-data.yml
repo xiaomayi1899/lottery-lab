@@ -1,0 +1,43 @@
+name: Update lottery data
+
+# 每天北京时间 22:40 / 23:40 抓取最新开奖（GitHub Actions 使用 UTC）
+on:
+  schedule:
+    - cron: '40 14 * * *'
+    - cron: '40 15 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-lottery-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch latest draws
+        run: node scripts/fetch-data.mjs --draws=400
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/history.json
+          if git diff --cached --quiet; then
+            echo "No data changes."
+          else
+            git commit -m "chore(data): update draw history"
+            git push
+          fi

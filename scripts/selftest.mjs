@@ -11,6 +11,7 @@ const core = require(resolve(ROOT, 'assets/core.js'));
 const formulas = require(resolve(ROOT, 'assets/formulas.js'));
 const data = JSON.parse(readFileSync(resolve(ROOT, 'data/history.json'), 'utf8'));
 
+const GAME_KEYS = ['ssq', 'dlt', 'fc3d', 'kl8', 'pl5'];
 let failed = 0;
 function ok(cond, label) {
   if (cond) return;
@@ -18,15 +19,34 @@ function ok(cond, label) {
   console.error('  ✗ ' + label);
 }
 function section(t) { console.log('\n■ ' + t); }
+function zonesOf(key) { return core.GAMES[key].ticketZones; }
+function poolFor(key, zone) {
+  if (key === 'kl8') return formulas.front;
+  if (zone === 'front' || zone === 'back') return formulas[zone];
+  return formulas.digit;
+}
+function fmt(n, cfg) {
+  return cfg.min === 0 && cfg.max === 9 ? String(n) : String(n).padStart(2, '0');
+}
+function drawText(key, draw) {
+  if (key === 'ssq' || key === 'dlt') {
+    return draw.front.map((n) => String(n).padStart(2, '0')).join(',') + ' + ' +
+      draw.back.map((n) => String(n).padStart(2, '0')).join(',');
+  }
+  if (key === 'kl8') return draw.main.map((n) => String(n).padStart(2, '0')).join(',');
+  return draw.digits.join(' ');
+}
 
 section('公式库');
 console.log(
-  `总数 ${formulas.stats.total}（前区 ${formulas.stats.front} / 后区 ${formulas.stats.back}）`
+  `双色球/大乐透 ${formulas.stats.total}（前区 ${formulas.stats.front} / 后区 ${formulas.stats.back}）` +
+  ` · 3D/排列五数字 ${formulas.stats.digit} · 全部 ${formulas.stats.allTotal}`
 );
 console.log('分类：', formulas.stats.categories);
-ok(formulas.stats.total >= 100, '公式总数不少于 100');
+ok(formulas.stats.total >= 100, '双色球/大乐透公式总数不少于 100');
 ok(formulas.stats.front >= 60, '前区公式不少于 60');
 ok(formulas.stats.back >= 30, '后区公式不少于 30');
+ok(formulas.stats.digit >= 40, '数字位置公式不少于 40');
 const ids = new Set(formulas.all.map((f) => f.id));
 ok(ids.size === formulas.all.length, '公式 id 唯一');
 const names = new Set(formulas.all.map((f) => f.zone + '|' + f.name));
@@ -34,11 +54,11 @@ ok(names.size === formulas.all.length, '同一分区内公式名称唯一');
 ok(formulas.all.every((f) => f.desc && f.desc.length >= 10), '每个公式都有说明');
 
 section('边界与确定性');
-for (const key of ['ssq', 'dlt']) {
+for (const key of GAME_KEYS) {
   const cfg = core.GAMES[key];
   const game = { ...data[key], key };
-  for (const zone of ['front', 'back']) {
-    const list = formulas[zone];
+  for (const zone of zonesOf(key)) {
+    const list = poolFor(key, zone);
     const cfgZone = cfg[zone];
     const lens = [10, 30, 100, game.draws.length];
     let bad = 0, nondet = 0;
@@ -59,10 +79,10 @@ for (const key of ['ssq', 'dlt']) {
 }
 
 section('投票推荐');
-for (const key of ['ssq', 'dlt']) {
+for (const key of GAME_KEYS) {
   const game = { ...data[key], key };
-  for (const zone of ['front', 'back']) {
-    const list = formulas[zone];
+  for (const zone of zonesOf(key)) {
+    const list = poolFor(key, zone);
     const cfg = game[zone];
     const t0 = Date.now();
     const a = core.analyze(game, zone, list, { window: 40 });
@@ -78,19 +98,19 @@ for (const key of ['ssq', 'dlt']) {
     ok(a.ranking[0].weight >= a.ranking[a.ranking.length - 1].weight, `${key}/${zone} 排名按权重降序`);
     ok(a.numbers.join(',') === b.numbers.join(','), `${key}/${zone} 推荐结果可复现`);
     console.log(
-      `  ${key}/${zone}: ${a.numbers.map((n) => String(n).padStart(2, '0')).join(' ')}` +
+      `  ${key}/${zone}: ${a.numbers.map((n) => fmt(n, cfg)).join(' ')}` +
       ` | ${a.details.length} 票 · ${ms}ms · 加权命中率 ${(a.stats.avgRate * 100).toFixed(1)}%` +
-      ` | 票王 ${a.ranking[0].n}（${a.ranking[0].votes} 票 / ${a.ranking[0].weight.toFixed(2)} 权重）`
+      ` | 票王 ${fmt(a.ranking[0].n, cfg)}（${a.ranking[0].votes} 票 / ${a.ranking[0].weight.toFixed(2)} 权重）`
     );
   }
 }
 
 section('备选票');
-for (const key of ['ssq', 'dlt']) {
+for (const key of GAME_KEYS) {
   const game = { ...data[key], key };
-  for (const zone of ['front', 'back']) {
+  for (const zone of zonesOf(key)) {
     const cfg = game[zone];
-    const base = core.analyze(game, zone, formulas[zone], { window: 40 });
+    const base = core.analyze(game, zone, poolFor(key, zone), { window: 40 });
     const baseCopy = base.numbers.join(',');
     let changed = 0;
     for (const salt of [1, 2, 3]) {
@@ -105,21 +125,22 @@ for (const key of ['ssq', 'dlt']) {
     ok(base.numbers.join(',') === baseCopy, `${key}/${zone} 生成备选不会改动主推`);
     ok(changed >= 2, `${key}/${zone} 至少两组备选与主推不同（实际 ${changed}/3）`);
 
-    let avoid = [];
+    let avoid = base.numbers.slice();
     const seqAlts = [1, 2].map((salt) => {
       const alt = core.reweight(game, base, salt, avoid);
       avoid = avoid.concat(alt.numbers);
       return alt;
     });
     ok(seqAlts[0].numbers.join(',') !== seqAlts[1].numbers.join(','), `${key}/${zone} 两个备选票互不相同`);
-    console.log(`  ${key}/${zone}: 主推 ${baseCopy} · 备选 ${[1, 2, 3].map((s) => core.reweight(game, base, s).numbers.join('/')).join(' | ')}`);
+    console.log(`  ${key}/${zone}: 主推 ${base.numbers.map((n) => fmt(n, cfg)).join(' ')} · 顺序备选 ` +
+      seqAlts.map((x) => x.numbers.map((n) => fmt(n, cfg)).join('/')).join(' | '));
   }
 }
 
 section('走势图');
-for (const key of ['ssq', 'dlt']) {
+for (const key of GAME_KEYS) {
   const game = { ...data[key], key };
-  for (const zone of ['front', 'back']) {
+  for (const zone of zonesOf(key)) {
     const cfg = core.GAMES[key][zone];
     const rows = core.trend(game.draws, zone, cfg, 30);
     ok(rows.length === 30, `${key}/${zone} 走势 30 行`);
@@ -131,11 +152,12 @@ for (const key of ['ssq', 'dlt']) {
 }
 
 section('数据新鲜度');
-const ssqLast = data.ssq.draws[data.ssq.draws.length - 1];
-const dltLast = data.dlt.draws[data.dlt.draws.length - 1];
-console.log(`  双色球 ${ssqLast.issue} ${ssqLast.date} ${ssqLast.front.join(',')}+${ssqLast.back}`);
-console.log(`  大乐透 ${dltLast.issue} ${dltLast.date} ${dltLast.front.join(',')}+${dltLast.back}`);
-ok(data.ssq.draws.length >= 300 && data.dlt.draws.length >= 300, '至少 300 期历史数据');
+for (const key of GAME_KEYS) {
+  const g = data[key];
+  const last = g.draws[g.draws.length - 1];
+  console.log(`  ${g.name} ${last.issue} ${last.date} ${drawText(key, last)}`);
+  ok(g.draws.length >= 300, `${g.name} 至少 300 期历史数据`);
+}
 
 if (failed) {
   console.error(`\n✗ 自测失败：${failed} 项`);

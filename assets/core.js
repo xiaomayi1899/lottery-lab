@@ -381,19 +381,28 @@
     for (var i = 0; i < formulas.length; i++) {
       var f = formulas[i];
       var hits = 0;
+      var weightedHits = 0;
+      var weightedTries = 0;
       for (var j = 0; j < contexts.length; j++) {
         var t = draws.length - contexts.length + j;
         var rec = safeRun(f, contexts[j]);
-        if (draws[t][zoneKey].indexOf(rec) !== -1) hits++;
+        /* 越近的期数权重越高：半衰期 20 期，避免用很久以前的走势主导当前投票 */
+        var recency = Math.pow(0.5, (contexts.length - 1 - j) / 20);
+        weightedTries += recency;
+        if (draws[t][zoneKey].indexOf(rec) !== -1) {
+          hits++;
+          weightedHits += recency;
+        }
       }
       var rate = contexts.length ? hits / contexts.length : 0;
       /* 贝叶斯平滑：40 期样本太少，直接命中率容易过拟合；向随机命中率收缩 */
-      var smoothed = (hits + prior * 8) / (contexts.length + 8);
+      var smoothed = (weightedHits + prior * 8) / (weightedTries + 8);
       var weight = 0.3 + smoothed * 2.2;
       if (salt) weight *= 0.78 + 0.44 * L.rand(L.hash(f.id + '|' + salt));
       details.push({
         id: f.id, name: f.name, cat: f.cat, desc: f.desc,
         rec: safeRun(f, ctx), hits: hits, tries: contexts.length, rate: rate,
+        recentRate: weightedTries ? weightedHits / weightedTries : 0,
         smoothed: smoothed, weight: weight, score: 0
       });
     }

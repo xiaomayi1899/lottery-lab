@@ -250,8 +250,13 @@
     ctx.cands.forEach(function (n) { byNumber[n] = { n: n, votes: [], weight: 0 }; });
 
     details.forEach(function (d) {
-      if (meta.penalty && meta.penalty.numbers.indexOf(d.rec) !== -1) {
-        d.weight *= meta.penalty.factor;
+      if (meta.penalty) {
+        if (meta.penalty.numbers.indexOf(d.rec) !== -1) {
+          d.weight *= meta.penalty.factor;
+        }
+        if (meta.penalty.avoid && meta.penalty.avoid.indexOf(d.rec) !== -1) {
+          d.weight *= meta.penalty.avoidFactor;
+        }
       }
       totalWeight += d.weight;
       var bucket = byNumber[d.rec];
@@ -313,6 +318,7 @@
     var ctx = makeCtx(draws, cfg, zoneKey);
     var contexts = backtestContexts(draws, cfg, zoneKey, window);
     var details = [];
+    var prior = cfg.pick / (cfg.max - cfg.min + 1);
 
     for (var i = 0; i < formulas.length; i++) {
       var f = formulas[i];
@@ -323,12 +329,14 @@
         if (draws[t][zoneKey].indexOf(rec) !== -1) hits++;
       }
       var rate = contexts.length ? hits / contexts.length : 0;
-      var weight = 0.42 + rate * 1.25;
+      /* 贝叶斯平滑：40 期样本太少，直接命中率容易过拟合；向随机命中率收缩 */
+      var smoothed = (hits + prior * 8) / (contexts.length + 8);
+      var weight = 0.3 + smoothed * 2.2;
       if (salt) weight *= 0.78 + 0.44 * L.rand(L.hash(f.id + '|' + salt));
       details.push({
         id: f.id, name: f.name, cat: f.cat, desc: f.desc,
         rec: safeRun(f, ctx), hits: hits, tries: contexts.length, rate: rate,
-        weight: weight, score: 0
+        smoothed: smoothed, weight: weight, score: 0
       });
     }
 
@@ -336,15 +344,16 @@
   }
 
   /* 用不同的盐值重新加权：不重跑回测，毫秒级生成“备选一注” */
-  function reweight(game, base, salt) {
+  function reweight(game, base, salt, avoid) {
     if (!salt) return base;
     var details = base.details.map(function (d) {
       /* 同一号码的公式获得同一扰动系数，让票数真正重新分布，而不是被大数平均掉 */
-      var numberFactor = 0.62 + 0.76 * L.rand(L.hash(d.rec + '|' + salt));
+      var numberFactor = 0.45 + 1.10 * L.rand(L.hash(d.rec + '|' + salt));
       return {
         id: d.id, name: d.name, cat: d.cat, desc: d.desc,
         rec: d.rec, hits: d.hits, tries: d.tries, rate: d.rate,
-        weight: (0.42 + d.rate * 1.25) * numberFactor,
+        smoothed: d.smoothed,
+        weight: (0.3 + d.smoothed * 2.2) * numberFactor,
         score: 0
       };
     });
@@ -354,7 +363,9 @@
       /* 备选票：对主推号码整体降权，让票数自然流向次优号码，保证“换一注”真的换得动 */
       penalty: {
         numbers: base.numbers,
-        factor: base.cfg.pick === 1 ? 0.16 : (base.cfg.pick === 2 ? 0.28 : 0.44)
+        factor: base.cfg.pick === 1 ? 0.16 : (base.cfg.pick === 2 ? 0.28 : 0.44),
+        avoid: avoid || [],
+        avoidFactor: 0.3
       }
     });
   }

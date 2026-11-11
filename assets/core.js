@@ -9,8 +9,9 @@
       en: 'SSQ',
       price: 2,
       schedule: '每周二、四、日 21:15 开奖',
-      front: { min: 1, max: 33, pick: 6, label: '红球', color: 'red' },
-      back: { min: 1, max: 16, pick: 1, label: '蓝球', color: 'blue' }
+      ticketZones: ['front', 'back'],
+      front: { min: 1, max: 33, pick: 6, label: '红球', short: '红', color: 'red' },
+      back: { min: 1, max: 16, pick: 1, label: '蓝球', short: '蓝', color: 'blue' }
     },
     dlt: {
       key: 'dlt',
@@ -18,8 +19,42 @@
       en: 'DLT',
       price: 3,
       schedule: '每周一、三、六 21:25 开奖',
-      front: { min: 1, max: 35, pick: 5, label: '前区', color: 'red' },
-      back: { min: 1, max: 12, pick: 2, label: '后区', color: 'blue' }
+      ticketZones: ['front', 'back'],
+      front: { min: 1, max: 35, pick: 5, label: '前区', short: '前', color: 'red' },
+      back: { min: 1, max: 12, pick: 2, label: '后区', short: '后', color: 'blue' }
+    },
+    fc3d: {
+      key: 'fc3d',
+      name: '福彩3D',
+      en: '3D',
+      price: 2,
+      schedule: '每日 21:15 开奖',
+      ticketZones: ['hundreds', 'tens', 'units'],
+      hundreds: { min: 0, max: 9, pick: 1, label: '百位', short: '百', color: 'gold' },
+      tens: { min: 0, max: 9, pick: 1, label: '十位', short: '十', color: 'gold' },
+      units: { min: 0, max: 9, pick: 1, label: '个位', short: '个', color: 'gold' }
+    },
+    kl8: {
+      key: 'kl8',
+      name: '快乐8',
+      en: 'KL8',
+      price: 2,
+      schedule: '每日 21:30 开奖',
+      ticketZones: ['main'],
+      main: { min: 1, max: 80, pick: 10, drawPick: 20, label: '号码', short: '号', color: 'red' }
+    },
+    pl5: {
+      key: 'pl5',
+      name: '排列五',
+      en: 'PL5',
+      price: 2,
+      schedule: '每日 21:25 开奖',
+      ticketZones: ['pos1', 'pos2', 'pos3', 'pos4', 'pos5'],
+      pos1: { min: 0, max: 9, pick: 1, label: '万位', short: '万', color: 'gold' },
+      pos2: { min: 0, max: 9, pick: 1, label: '千位', short: '千', color: 'gold' },
+      pos3: { min: 0, max: 9, pick: 1, label: '百位', short: '百', color: 'gold' },
+      pos4: { min: 0, max: 9, pick: 1, label: '十位', short: '十', color: 'gold' },
+      pos5: { min: 0, max: 9, pick: 1, label: '个位', short: '个', color: 'gold' }
     }
   };
 
@@ -284,6 +319,29 @@
     });
 
     var chosen = ranking.slice(0, cfg.pick).map(function (r) { return r.n; }).sort(function (a, b) { return a - b; });
+
+    /* 备选票：若仍撞上要避开的号码，强制用排名最高的未避开号码替换 */
+    if (meta.penalty && meta.penalty.avoid && meta.penalty.avoid.length) {
+      var avoid = meta.penalty.avoid;
+      var weightOf = {};
+      ranking.forEach(function (r) { weightOf[r.n] = r.weight; });
+      var selected = chosen.slice();
+      var guard = 0;
+      while (selected.some(function (n) { return avoid.indexOf(n) !== -1; }) && guard++ < cfg.pick) {
+        var dropPool = selected.filter(function (n) { return avoid.indexOf(n) !== -1; });
+        if (!dropPool.length) dropPool = selected.slice();
+        dropPool.sort(function (a, b) { return weightOf[a] - weightOf[b]; });
+        var drop = dropPool[0];
+        var add = null;
+        for (var ri = 0; ri < ranking.length; ri++) {
+          var cand = ranking[ri].n;
+          if (selected.indexOf(cand) === -1 && avoid.indexOf(cand) === -1) { add = cand; break; }
+        }
+        if (add === null) break;
+        selected = selected.filter(function (n) { return n !== drop; }).concat(add);
+      }
+      chosen = selected.sort(function (a, b) { return a - b; });
+    }
 
     return {
       game: game.key,

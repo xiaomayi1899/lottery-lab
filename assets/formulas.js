@@ -80,9 +80,12 @@
       });
     });
     var bestG = null, bestC = -1;
-    Object.keys(counts).forEach(function (g) {
-      if (counts[g] > bestC) { bestC = counts[g]; bestG = g; }
-    });
+    Object.keys(counts)
+      .map(function (g) { return Number(g); })
+      .sort(function (a, b) { return a - b; })
+      .forEach(function (g) {
+        if (counts[g] > bestC) { bestC = counts[g]; bestG = g; }
+      });
     if (bestG === null) return ctx.min;
     var pool = ctx.cands.filter(function (n) { return String(groupFn(n)) === String(bestG); });
     return L.bestOf(ctx, pool, function (n) { return L.countLast(ctx, n, 30); }, 'recent');
@@ -524,7 +527,7 @@
   add('front', '数论映射', '斐波那契定位',
     '列出区间内的斐波那契数，用当前期数对个数取模定位，推荐对应斐波那契号。',
     function (ctx) {
-      var fibs = [], a = 1, b = 1;
+      var fibs = [], a = 1, b = 2;
       while (a <= ctx.max) {
         if (a >= ctx.min) fibs.push(a);
         var c = a + b; a = b; b = c;
@@ -661,6 +664,75 @@
       var m = Number(String(last.date || '').slice(5, 7)) || 1;
       var size = ctx.max - ctx.min + 1;
       return ctx.min + ((m - 1) % size);
+    });
+
+  add('front', '统计模型', '和值尾数转移',
+    '统计历史上“上期和值尾数 → 下期号码”的转移次数，推荐当前和值尾数之后出现最多的号码。',
+    function (ctx) {
+      var targetTail = L.sum(ctx.last) % 10;
+      var scores = {};
+      ctx.cands.forEach(function (n) { scores[n] = 0; });
+      for (var t = 0; t < ctx.seqs.length - 1; t++) {
+        if (L.sum(ctx.seqs[t]) % 10 !== targetTail) continue;
+        ctx.seqs[t + 1].forEach(function (n) { if (scores[n] !== undefined) scores[n]++; });
+      }
+      return L.best(ctx, function (n) { return scores[n]; }, 'recent');
+    });
+
+  add('front', '遗漏', '尾数遗漏回补',
+    '计算 0–9 每个尾数距上次出现的期数，选最久未出的尾数，再在该尾数中推荐近30期最活跃的号码。',
+    function (ctx) {
+      var bestTail = 0, bestOm = -1;
+      for (var t = 0; t <= 9; t++) {
+        var om = ctx.n;
+        for (var i = ctx.seqs.length - 1; i >= 0; i--) {
+          var hit = false;
+          for (var j = 0; j < ctx.seqs[i].length; j++) {
+            if (ctx.seqs[i][j] % 10 === t) { hit = true; break; }
+          }
+          if (hit) { om = ctx.seqs.length - 1 - i; break; }
+        }
+        if (om > bestOm) { bestOm = om; bestTail = t; }
+      }
+      var pool = ctx.cands.filter(function (n) { return n % 10 === bestTail; });
+      return L.bestOf(ctx, pool, function (n) { return L.countLast(ctx, n, 30); }, 'recent');
+    });
+
+  add('front', '上期关联', '邻号遗漏',
+    '取上期每个号码的左右邻号，推荐当前遗漏最久的一个；遗漏相同时优先近10期出现更多的号码。',
+    function (ctx) {
+      var pool = [];
+      ctx.last.forEach(function (n) {
+        pool.push(L.wrap(n - 1, ctx.min, ctx.max));
+        pool.push(L.wrap(n + 1, ctx.min, ctx.max));
+      });
+      return L.bestOf(ctx, pool, function (n) { return L.omission(ctx, n); }, 'freq10');
+    });
+
+  add('front', '结构形态', '区间遗漏轮动',
+    '把号码区间三等分，计算每个区距上次出号的期数，从最久未出号的区里推荐近20期最活跃号。',
+    function (ctx) {
+      var zoneOm = [ctx.n, ctx.n, ctx.n];
+      for (var z = 0; z < 3; z++) {
+        for (var i = ctx.seqs.length - 1; i >= 0; i--) {
+          var hit = false;
+          for (var j = 0; j < ctx.seqs[i].length; j++) {
+            if (L.zoneIndex(ctx.seqs[i][j], ctx.min, ctx.max, 3) === z) { hit = true; break; }
+          }
+          if (hit) { zoneOm[z] = ctx.seqs.length - 1 - i; break; }
+        }
+      }
+      var maxZ = 0;
+      for (z = 1; z < 3; z++) if (zoneOm[z] > zoneOm[maxZ]) maxZ = z;
+      var pool = ctx.cands.filter(function (n) { return L.zoneIndex(n, ctx.min, ctx.max, 3) === maxZ; });
+      return L.bestOf(ctx, pool, function (n) { return L.countLast(ctx, n, 20); }, 'recent');
+    });
+
+  add('front', '遗漏', '质数遗漏',
+    '在区间内的质数中推荐当前遗漏最久的号码；遗漏相同时优先近10期出现更多的号码。',
+    function (ctx) {
+      var pool = ctx.cands.filter(function (n) { return L.isPrime(n); });
+      return L.bestOf(ctx, pool, function (n) { return L.omission(ctx, n); }, 'freq10');
     });
 
   /* ============================ 后区公式 ============================ */
@@ -854,7 +926,7 @@
   add('back', '数论映射', '后区斐波那契',
     '列出后区区间内的斐波那契数，用当前期数取模定位。',
     function (ctx) {
-      var fibs = [], a = 1, b = 1;
+      var fibs = [], a = 1, b = 2;
       while (a <= ctx.max) { if (a >= ctx.min) fibs.push(a); var c = a + b; a = b; b = c; }
       return fibs.length ? fibs[ctx.n % fibs.length] : ctx.min;
     });
@@ -906,6 +978,49 @@
       var other = ctx.zone === 'back' ? 'front' : 'back';
       var last = ctx.draws[ctx.draws.length - 1] || {};
       return ctx.min + (L.span(last[other] || []) % (ctx.max - ctx.min + 1));
+    });
+
+  add('back', '遗漏', '后区尾数遗漏',
+    '计算后区 0–9 每个尾数距上次出现的期数，推荐最久未出尾数中近30期最活跃的号码。',
+    function (ctx) {
+      var bestTail = 0, bestOm = -1;
+      for (var t = 0; t <= 9; t++) {
+        var om = ctx.n;
+        for (var i = ctx.seqs.length - 1; i >= 0; i--) {
+          var hit = false;
+          for (var j = 0; j < ctx.seqs[i].length; j++) {
+            if (ctx.seqs[i][j] % 10 === t) { hit = true; break; }
+          }
+          if (hit) { om = ctx.seqs.length - 1 - i; break; }
+        }
+        if (om > bestOm) { bestOm = om; bestTail = t; }
+      }
+      var pool = ctx.cands.filter(function (n) { return n % 10 === bestTail; });
+      return L.bestOf(ctx, pool, function (n) { return L.countLast(ctx, n, 30); }, 'recent');
+    });
+
+  add('back', '统计模型', '后区和值尾转移',
+    '统计历史上“上期后区和值尾数 → 下期号码”的转移次数，推荐当前和值尾数之后出现最多的后区号。',
+    function (ctx) {
+      var targetTail = L.sum(ctx.last) % 10;
+      var scores = {};
+      ctx.cands.forEach(function (n) { scores[n] = 0; });
+      for (var t = 0; t < ctx.seqs.length - 1; t++) {
+        if (L.sum(ctx.seqs[t]) % 10 !== targetTail) continue;
+        ctx.seqs[t + 1].forEach(function (n) { if (scores[n] !== undefined) scores[n]++; });
+      }
+      return L.best(ctx, function (n) { return scores[n]; }, 'recent');
+    });
+
+  add('back', '上期关联', '后区邻号遗漏',
+    '取上期后区号码的左右邻号，推荐当前遗漏最久的一个；遗漏相同时优先近10期出现更多的号码。',
+    function (ctx) {
+      var pool = [];
+      ctx.last.forEach(function (n) {
+        pool.push(L.wrap(n - 1, ctx.min, ctx.max));
+        pool.push(L.wrap(n + 1, ctx.min, ctx.max));
+      });
+      return L.bestOf(ctx, pool, function (n) { return L.omission(ctx, n); }, 'freq10');
     });
 
   var byZone = { front: [], back: [] };

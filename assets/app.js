@@ -8,12 +8,13 @@
   if (!Core || !F) return;
 
   var L = Core.Lib;
-  var VERSION = '1.3.0';
+  var VERSION = '1.5.0';
   var $view = document.getElementById('view');
   var $toast = document.getElementById('toast');
   var $tabbar = document.getElementById('tabbar');
   var $gameSeg = document.getElementById('game-seg');
   var $dataDate = document.getElementById('data-date');
+  var $refreshBtn = document.getElementById('refresh-btn');
 
   var storage = {
     get: function (k, d) {
@@ -38,7 +39,8 @@
     data: null,
     loading: true,
     error: null,
-    alts: null
+    alts: null,
+    updateReady: false
   };
 
   var cache = {};
@@ -686,7 +688,7 @@
       return (detail[b.id].weight - detail[a.id].weight) || (a.id < b.id ? -1 : 1);
     });
     var cats = ['全部'];
-    var catOrder = ['频率', '遗漏', '上期关联', '和值跨度', '结构形态', '统计模型', '数论映射', '期号日期', '跨区联动'];
+    var catOrder = ['频率', '遗漏', '上期关联', '和值跨度', '结构形态', '统计模型', '反思维', '数论映射', '期号日期', '跨区联动'];
     catOrder.forEach(function (c) {
       if (list.some(function (f) { return f.cat === c; })) cats.push(c);
     });
@@ -817,7 +819,7 @@
       '</div></section>' +
 
       '<section class="card"><div class="card-title">公式体系</div><div class="prose">' +
-      '<p>双色球/大乐透 <b>' + F.stats.total + '</b> 个（前区 ' + F.stats.front + ' / 后区 ' + F.stats.back + '）；3D/排列五每位 <b>' + F.stats.digit + '</b> 个数字公式；快乐8 <b>' + F.stats.front + '</b> 个号码公式。覆盖 9 类方法：</p>' +
+      '<p>双色球/大乐透 <b>' + F.stats.total + '</b> 个（前区 ' + F.stats.front + ' / 后区 ' + F.stats.back + '）；3D/排列五每位 <b>' + F.stats.digit + '</b> 个数字公式；快乐8 <b>' + F.stats.front + '</b> 个号码公式。覆盖 10 类方法：</p>' +
       '<div class="chips" style="padding-top:8px">' + Object.keys(F.stats.categories).map(function (c) {
         return '<span class="chip">' + c + '<span class="n">' + F.stats.categories[c] + '</span></span>';
       }).join('') + '</div>' +
@@ -830,7 +832,9 @@
       '<div class="kv"><span>最新开奖</span><b>' + latestText + '</b></div>' +
       '<div class="kv"><span>数据来源</span><b>中国福利彩票官网<br>中国体育彩票官网<br>500.com 走势图（备用）</b></div>' +
       '<div class="kv"><span>抓取时间</span><b>' + updated + '</b></div>' +
-      '<div class="kv"><span>版本</span><b>v' + VERSION + '</b></div>' +
+      '<div class="kv"><span>版本</span><b>v' + VERSION + (state.updateReady ? ' · 有新版本' : '') + '</b></div>' +
+      '<button class="btn ghost" data-action="check-update" style="margin-top:12px">检查更新 · 清除缓存</button>' +
+      '<p class="hint" style="margin-top:8px">如果页面还停在旧版本，点上面的按钮（或右上角的 ⟳）会清掉离线缓存并重新拉取最新文件。</p>' +
       '</section>' +
 
       '<section class="card"><div class="card-title">装到 iPhone 主屏幕</div>' +
@@ -942,8 +946,14 @@
       state.error = null;
       render();
       boot();
+    } else if (action === 'check-update') {
+      checkUpdate(true);
     }
   });
+
+  if ($refreshBtn) {
+    $refreshBtn.addEventListener('click', function () { checkUpdate(true); });
+  }
 
   document.addEventListener('input', function (e) {
     if (e.target && e.target.id === 'formula-search') {
@@ -961,10 +971,57 @@
     }, 160);
   });
 
+  /* ---------------- 版本更新 ---------------- */
+  function clearAppCaches() {
+    if (!('caches' in window)) return Promise.resolve();
+    return caches.keys().then(function (keys) {
+      return Promise.all(keys.filter(function (k) { return k.indexOf('sc-lab-') === 0; })
+        .map(function (k) { return caches.delete(k); }));
+    }).catch(function () {});
+  }
+
+  // 带时间戳重载，绕过浏览器 HTTP 缓存
+  function reloadFresh() {
+    var base = location.pathname + location.search.replace(/([?&])_u=\d+&?/g, '$1').replace(/[?&]$/, '');
+    var url = base + (base.indexOf('?') === -1 ? '?' : '&') + '_u=' + Date.now();
+    location.replace(url);
+  }
+
+  function checkUpdate(manual) {
+    if ($refreshBtn) $refreshBtn.classList.add('spin');
+    if (manual) toast('正在检查更新…');
+    var jobs = [clearAppCaches()];
+    if ('serviceWorker' in navigator) {
+      jobs.push(navigator.serviceWorker.getRegistrations().then(function (regs) {
+        return Promise.all(regs.map(function (reg) { return reg.unregister().catch(function () {}); }));
+      }).catch(function () {}));
+    }
+    Promise.all(jobs).then(function () {
+      if (manual) toast('已清除缓存，正在获取最新版本…');
+      setTimeout(reloadFresh, manual ? 420 : 0);
+    });
+  }
+
   /* ---------------- PWA ---------------- */
   function registerSW() {
     if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
-    navigator.serviceWorker.register('sw.js').catch(function () {});
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function (reg) {
+      reg.addEventListener('updatefound', function () {
+        var worker = reg.installing;
+        if (!worker) return;
+        worker.addEventListener('statechange', function () {
+          if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+            state.updateReady = true;
+            if ($refreshBtn) $refreshBtn.classList.add('has-update');
+            toast('发现新版本，点右上角 ⟳ 更新');
+          }
+        });
+      });
+      // 回到前台时顺手检查一次新版本
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) reg.update().catch(function () {});
+      });
+    }).catch(function () {});
   }
 
   if (document.readyState === 'loading') {

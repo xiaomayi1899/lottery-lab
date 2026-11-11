@@ -93,6 +93,22 @@ h1, h2, h3, p { margin: 0; }
 }
 .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
 
+.top-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.icon-btn {
+  width: 30px; height: 30px; flex: 0 0 auto;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid var(--line-soft);
+  transition: color 0.18s, background 0.18s, transform 0.18s;
+}
+.icon-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.icon-btn:active { transform: scale(0.94); background: rgba(255, 255, 255, 0.12); }
+.icon-btn.spin svg { animation: spin 0.75s linear infinite; }
+.icon-btn.has-update { color: #ffcf7a; border-color: rgba(255, 196, 92, 0.55); box-shadow: 0 0 0 3px rgba(255, 196, 92, 0.12); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
 .game-seg { margin-top: 10px; }
 .game-seg button { font-size: 12px; padding: 0 2px; }
 

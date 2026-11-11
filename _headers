@@ -1,0 +1,27 @@
+# Cloudflare Pages 响应头
+# 目的：入口与 Service Worker 不缓存，避免再次出现“网页还是旧版本”
+#      静态资源短缓存，开奖数据每次校验
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  X-Frame-Options: DENY
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+
+/
+  Cache-Control: no-cache
+
+/index.html
+  Cache-Control: no-cache
+
+/sw.js
+  Cache-Control: no-cache
+
+/manifest.webmanifest
+  Cache-Control: no-cache
+
+/data/history.json
+  Cache-Control: no-cache
+
+/assets/*
+  Cache-Control: public, max-age=600

@@ -8,7 +8,7 @@
   if (!Core || !F) return;
 
   var L = Core.Lib;
-  var VERSION = '1.2.1';
+  var VERSION = '1.3.0';
   var $view = document.getElementById('view');
   var $toast = document.getElementById('toast');
   var $tabbar = document.getElementById('tabbar');
@@ -306,6 +306,12 @@
     }
 
     var structure = statsGrid(summary) + backLine(results);
+    var repeatNotes = results.filter(function (r) { return r.cfg.pick > 1; }).map(function (r) {
+      return r.cfg.label + '最多保留 ' + r.res.stats.repeatLimit + ' 个上期号';
+    }).join(' · ');
+    var repeatHint = repeatNotes
+      ? '<p class="hint" style="margin-top:10px">重号抑制：' + repeatNotes + '</p>'
+      : '';
 
     var heroBalls = '';
     var ballIndex = 0;
@@ -364,7 +370,7 @@
 
       '<section class="card">' +
       '<div class="card-title">号码结构 <span class="sub">' + structureSub + '</span></div>' +
-      structure +
+      structure + repeatHint +
       '</section>' +
 
       '<section class="card" id="vote-card">' + voteCardHTML() + '</section>' +
@@ -439,7 +445,8 @@
       '<div class="card-title" style="margin:0">投票榜</div>' +
       '<div class="seg mini">' + buttons + '</div></div>' +
       '<div class="vote-list">' + rows + '</div>' +
-      '<p class="hint" style="margin-top:10px">票数 = 推荐该号码的公式数量；权重 = 按贝叶斯平滑后的近 40 期回测命中率加权。</p>';
+      '<p class="hint" style="margin-top:10px">票数 = 推荐该号码的公式数量；权重已含贝叶斯平滑与上期重号抑制' +
+      (cfg.pick > 1 ? '（本区最多保留 ' + res.stats.repeatLimit + ' 个上期号）' : '') + '。</p>';
   }
 
   function contribHTML(results) {
@@ -805,7 +812,7 @@
       '<section class="card"><div class="card-title">它怎么工作</div><div class="prose">' +
       '<p><b>1. 每个公式只推荐一个号码。</b>双色球/大乐透的前区、后区公式互不混用；3D 按百/十/个位逐位推荐 0–9，排列五按万/千/百/十/个位逐位推荐 0–9；快乐8 在 1–80 中推荐 10 个号码。</p>' +
       '<p><b>2. 滚动回测加权。</b>每个公式用最近 40 期做“假装不知道当期”的回测，越近的期数权重越高（半衰期 20 期），再做贝叶斯平滑，避免小样本过拟合；平滑命中率越高，投票权重越大。</p>' +
-      '<p><b>3. 加权投票。</b>所有公式给各自推荐的号码投票，按加权票数从高到低组成一注：双色球 6+1、大乐透 5+2、3D 三位、排列五五位、快乐8 选十。</p>' +
+      '<p><b>3. 加权投票。</b>所有公式给各自推荐的号码投票，按加权票数从高到低组成一注：双色球 6+1、大乐透 5+2、3D 三位、排列五五位、快乐8 选十。对与上期开奖重复的号码降低权重（×0.6–0.8），并限制最多保留个数：大乐透前区/后区各 1 个、双色球前区 2 个、快乐8 4 个；单数字位置不限制。</p>' +
       '<p><b>4. 备选票。</b>“换一注”会对主推号码整体降权，并按号码加入确定性扰动，让票数自然流向次优号码；不使用随机数，同一组编号随时可复现。</p>' +
       '</div></section>' +
 

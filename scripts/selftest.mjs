@@ -43,10 +43,10 @@ console.log(
   ` · 3D/排列五数字 ${formulas.stats.digit} · 全部 ${formulas.stats.allTotal}`
 );
 console.log('分类：', formulas.stats.categories);
-ok(formulas.stats.total >= 100, '双色球/大乐透公式总数不少于 100');
-ok(formulas.stats.front >= 60, '前区公式不少于 60');
-ok(formulas.stats.back >= 30, '后区公式不少于 30');
-ok(formulas.stats.digit >= 40, '数字位置公式不少于 40');
+ok(formulas.stats.total >= 265, '双色球/大乐透公式总数不少于 265');
+ok(formulas.stats.front >= 170, '前区公式不少于 170');
+ok(formulas.stats.back >= 95, '后区公式不少于 95');
+ok(formulas.stats.digit >= 90, '数字位置公式不少于 90');
 const ids = new Set(formulas.all.map((f) => f.id));
 ok(ids.size === formulas.all.length, '公式 id 唯一');
 const names = new Set(formulas.all.map((f) => f.zone + '|' + f.name));

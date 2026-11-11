@@ -187,6 +187,135 @@
     for (i = 1; i < m; i++) num += (xs[i] - mean) * (xs[i - 1] - mean);
     return den ? num / den : 0;
   };
+  L.quantile = function (arr, q) {
+    if (!arr.length) return 0;
+    var b = arr.slice().sort(function (a, c) { return a - c; });
+    var pos = (b.length - 1) * q;
+    var lo = Math.floor(pos), hi = Math.ceil(pos);
+    return b[lo] + (b[hi] - b[lo]) * (pos - lo);
+  };
+  L.skewness = function (arr) {
+    if (arr.length < 3) return 0;
+    var m = L.mean(arr), s = L.std(arr);
+    if (!s) return 0;
+    var sum = 0;
+    for (var i = 0; i < arr.length; i++) sum += Math.pow((arr[i] - m) / s, 3);
+    return sum / arr.length;
+  };
+  L.gapStats = function (ctx, n) {
+    var idx = [];
+    for (var i = 0; i < ctx.seqs.length; i++) if (ctx.seqs[i].indexOf(n) !== -1) idx.push(i);
+    if (idx.length < 2) return { avg: ctx.n, std: Math.max(1, ctx.n / 2), count: idx.length };
+    var gaps = [];
+    for (var j = 1; j < idx.length; j++) gaps.push(idx[j] - idx[j - 1]);
+    return { avg: L.mean(gaps), std: L.std(gaps) || 1, count: idx.length };
+  };
+  L.poissonZ = function (count, mean) {
+    return (count - mean) / Math.sqrt(mean + 1e-6);
+  };
+  L.ar1 = function (ctx, n, w) {
+    var seqs = ctx.seqs.slice(-w), m = seqs.length;
+    if (m < 3) return 0;
+    var y = [], mean = 0, i;
+    for (i = 0; i < m; i++) { y.push(seqs[i].indexOf(n) !== -1 ? 1 : 0); mean += y[i]; }
+    mean /= m;
+    var num = 0, den = 0;
+    for (i = 1; i < m; i++) num += (y[i] - mean) * (y[i - 1] - mean);
+    for (i = 0; i < m; i++) den += Math.pow(y[i] - mean, 2);
+    var phi = den ? num / den : 0;
+    return mean + phi * (y[m - 1] - mean);
+  };
+  L.holt = function (ctx, n, w, alpha, beta) {
+    var seqs = ctx.seqs.slice(-w), m = seqs.length;
+    if (m < 2) return 0;
+    alpha = alpha || 0.3;
+    beta = beta || 0.1;
+    var level = seqs[0].indexOf(n) !== -1 ? 1 : 0;
+    var trend = 0;
+    for (var i = 1; i < m; i++) {
+      var y = seqs[i].indexOf(n) !== -1 ? 1 : 0;
+      var prev = level;
+      level = alpha * y + (1 - alpha) * (level + trend);
+      trend = beta * (level - prev) + (1 - beta) * trend;
+    }
+    return level + trend;
+  };
+  L.sinFit = function (ctx, n, w, period) {
+    var seqs = ctx.seqs.slice(-w), m = seqs.length;
+    if (m < 4) return 0;
+    var mean = 0, i;
+    for (i = 0; i < m; i++) mean += seqs[i].indexOf(n) !== -1 ? 1 : 0;
+    mean /= m;
+    var ss = 0, cc = 0, sc = 0, sy = 0, cy = 0;
+    for (i = 0; i < m; i++) {
+      var ang = (2 * Math.PI * i) / period;
+      var s = Math.sin(ang), c = Math.cos(ang);
+      var y = (seqs[i].indexOf(n) !== -1 ? 1 : 0) - mean;
+      ss += s * s; cc += c * c; sc += s * c; sy += s * y; cy += c * y;
+    }
+    var det = ss * cc - sc * sc;
+    if (!det) return mean;
+    var a = (sy * cc - cy * sc) / det;
+    var b = (cy * ss - sy * sc) / det;
+    var next = (2 * Math.PI * m) / period;
+    return mean + a * Math.sin(next) + b * Math.cos(next);
+  };
+  L.cooccurLift = function (ctx, n, lastSet, w) {
+    if (!lastSet || !lastSet.length) return 1;
+    var seqs = ctx.seqs.slice(-w), withN = 0, withT = 0, baseN = 0, baseT = 0;
+    for (var t = 0; t < seqs.length - 1; t++) {
+      var hit = seqs[t].some(function (x) { return lastSet.indexOf(x) !== -1; });
+      var nextHit = seqs[t + 1].indexOf(n) !== -1;
+      baseT++;
+      if (nextHit) baseN++;
+      if (hit) {
+        withT++;
+        if (nextHit) withN++;
+      }
+    }
+    var pWith = (withN + 1) / (withT + 2);
+    var pBase = (baseN + 1) / (baseT + 2);
+    return pWith / pBase;
+  };
+  L.cooccurNetwork = function (ctx, n, lastSet, w) {
+    if (!lastSet || !lastSet.length) return 0;
+    var seqs = ctx.seqs.slice(-w);
+    var counts = {};
+    lastSet.forEach(function (x) { counts[x] = L.countLast(ctx, x, w); });
+    var score = 0;
+    for (var t = 0; t < seqs.length; t++) {
+      if (seqs[t].indexOf(n) === -1) continue;
+      for (var j = 0; j < lastSet.length; j++) {
+        if (seqs[t].indexOf(lastSet[j]) !== -1) score += 1 / (counts[lastSet[j]] + 1);
+      }
+    }
+    return score;
+  };
+  L.similarScores = function (ctx, w, k) {
+    var draws = ctx.draws;
+    if (draws.length < 6) return {};
+    var last = ctx.last;
+    var lastSum = L.sum(last), lastSpan = L.span(last);
+    var lastOdd = last.filter(function (x) { return x % 2 === 1; }).length;
+    var cands = [];
+    var start = Math.max(1, draws.length - w - 1);
+    for (var t = start; t < draws.length - 1; t++) {
+      var d = draws[t][ctx.zone];
+      var dist = Math.abs(L.sum(d) - lastSum) / (ctx.max * ctx.pick + 1) +
+        Math.abs(L.span(d) - lastSpan) / (ctx.max - ctx.min + 1) +
+        Math.abs(d.filter(function (x) { return x % 2 === 1; }).length - lastOdd) / ctx.pick;
+      cands.push({ t: t, dist: dist });
+    }
+    cands.sort(function (a, b) { return a.dist - b.dist; });
+    var scores = {};
+    ctx.cands.forEach(function (x) { scores[x] = 0; });
+    cands.slice(0, k || 12).forEach(function (c) {
+      draws[c.t + 1][ctx.zone].forEach(function (x) {
+        if (scores[x] !== undefined) scores[x]++;
+      });
+    });
+    return scores;
+  };
   /* 条件转移：按号码在最近 order 期的出现状态分组，估计下一期出现概率（拉普拉斯平滑） */
   L.transition = function (ctx, n, order) {
     order = order || 1;

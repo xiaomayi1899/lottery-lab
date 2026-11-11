@@ -1,7 +1,7 @@
 /* 数彩实验室 · 离线缓存 */
 'use strict';
 
-var CACHE = 'sc-lab-v5';
+var CACHE = 'sc-lab-v9';
 var ASSETS = [
   './index.html',
   './manifest.webmanifest',
@@ -42,6 +42,11 @@ self.addEventListener('activate', function (event) {
   );
 });
 
+// 页面点“检查更新”时可以让新 SW 立即接管
+self.addEventListener('message', function (event) {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
 self.addEventListener('fetch', function (event) {
   var req = event.request;
   if (req.method !== 'GET') return;
@@ -78,14 +83,18 @@ self.addEventListener('fetch', function (event) {
     return;
   }
 
-  // 静态资源：缓存优先
+  // 静态资源（js/css/svg/图标）：网络优先，断网时才用缓存
+  // 之前的“缓存优先”会让页面长期停留在旧版本，这里改为每次联网都取最新文件
   event.respondWith(
-    caches.match(req).then(function (hit) {
-      if (hit) return hit;
-      return fetch(req).then(function (res) {
+    fetch(req).then(function (res) {
+      if (res && res.ok) {
         var copy = res.clone();
         caches.open(CACHE).then(function (cache) { cache.put(req, copy); });
-        return res;
+      }
+      return res;
+    }).catch(function () {
+      return caches.match(req).then(function (hit) {
+        return hit || caches.match('./index.html');
       });
     })
   );

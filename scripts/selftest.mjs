@@ -104,6 +104,14 @@ for (const key of ['ssq', 'dlt']) {
     }
     ok(base.numbers.join(',') === baseCopy, `${key}/${zone} 生成备选不会改动主推`);
     ok(changed >= 2, `${key}/${zone} 至少两组备选与主推不同（实际 ${changed}/3）`);
+
+    let avoid = [];
+    const seqAlts = [1, 2].map((salt) => {
+      const alt = core.reweight(game, base, salt, avoid);
+      avoid = avoid.concat(alt.numbers);
+      return alt;
+    });
+    ok(seqAlts[0].numbers.join(',') !== seqAlts[1].numbers.join(','), `${key}/${zone} 两个备选票互不相同`);
     console.log(`  ${key}/${zone}: 主推 ${baseCopy} · 备选 ${[1, 2, 3].map((s) => core.reweight(game, base, s).numbers.join('/')).join(' | ')}`);
   }
 }

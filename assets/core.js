@@ -278,8 +278,18 @@
     return out;
   }
 
+  function repeatPolicy(cfg) {
+    if (cfg.pick >= 8) return { penalty: 0.8, max: Math.max(2, Math.round(cfg.pick * 0.4)) };
+    if (cfg.pick >= 6) return { penalty: 0.7, max: 2 };
+    if (cfg.pick >= 2) return { penalty: 0.6, max: 1 };
+    return { penalty: 1, max: 1 };
+  }
+
   function assemble(game, zoneKey, cfg, details, meta) {
     var ctx = makeCtx(game.draws, cfg, zoneKey);
+    var lastDraw = game.draws[game.draws.length - 1] || {};
+    var lastNumbers = lastDraw[zoneKey] || [];
+    var repeat = repeatPolicy(cfg);
     var totalWeight = 0;
     var byNumber = {};
     ctx.cands.forEach(function (n) { byNumber[n] = { n: n, votes: [], weight: 0 }; });
@@ -305,42 +315,71 @@
       var b = byNumber[n];
       var hitWeighted = 0;
       b.votes.forEach(function (d) { hitWeighted += d.rate * d.weight; });
+      var rawWeight = b.weight;
+      var adjusted = lastNumbers.indexOf(n) !== -1 ? rawWeight * repeat.penalty : rawWeight;
       return {
         n: n,
         votes: b.votes.length,
-        weight: b.weight,
+        weight: adjusted,
+        rawWeight: rawWeight,
         hitRate: b.weight ? hitWeighted / b.weight : 0,
         contributors: b.votes.slice().sort(function (a, c) { return c.weight - a.weight; }),
         omission: L.omission(ctx, n),
-        freq10: L.countLast(ctx, n, 10)
+        freq10: L.countLast(ctx, n, 10),
+        repeat: lastNumbers.indexOf(n) !== -1
       };
     }).sort(function (a, b) {
       return (b.weight - a.weight) || (b.votes - a.votes) || (b.freq10 - a.freq10) || (a.n - b.n);
     });
 
+    var weightOf = {};
+    ranking.forEach(function (r) { weightOf[r.n] = r.weight; });
+    var avoidNumbers = (meta.penalty && meta.penalty.avoid) ? meta.penalty.avoid : [];
     var chosen = ranking.slice(0, cfg.pick).map(function (r) { return r.n; }).sort(function (a, b) { return a - b; });
 
     /* 备选票：若仍撞上要避开的号码，强制用排名最高的未避开号码替换 */
-    if (meta.penalty && meta.penalty.avoid && meta.penalty.avoid.length) {
-      var avoid = meta.penalty.avoid;
-      var weightOf = {};
-      ranking.forEach(function (r) { weightOf[r.n] = r.weight; });
+    if (avoidNumbers.length) {
       var selected = chosen.slice();
       var guard = 0;
-      while (selected.some(function (n) { return avoid.indexOf(n) !== -1; }) && guard++ < cfg.pick) {
-        var dropPool = selected.filter(function (n) { return avoid.indexOf(n) !== -1; });
+      while (selected.some(function (n) { return avoidNumbers.indexOf(n) !== -1; }) && guard++ < cfg.pick) {
+        var dropPool = selected.filter(function (n) { return avoidNumbers.indexOf(n) !== -1; });
         if (!dropPool.length) dropPool = selected.slice();
         dropPool.sort(function (a, b) { return weightOf[a] - weightOf[b]; });
         var drop = dropPool[0];
         var add = null;
         for (var ri = 0; ri < ranking.length; ri++) {
           var cand = ranking[ri].n;
-          if (selected.indexOf(cand) === -1 && avoid.indexOf(cand) === -1) { add = cand; break; }
+          if (selected.indexOf(cand) === -1 && avoidNumbers.indexOf(cand) === -1) { add = cand; break; }
         }
         if (add === null) break;
         selected = selected.filter(function (n) { return n !== drop; }).concat(add);
       }
       chosen = selected.sort(function (a, b) { return a - b; });
+    }
+
+    /* 重号抑制：限制与上期开奖号码的最大重复个数，避免推荐过度依赖刚开出的号码 */
+    var repeatCount = chosen.filter(function (n) { return lastNumbers.indexOf(n) !== -1; }).length;
+    if (repeatCount > repeat.max) {
+      var selectedRepeat = chosen.slice();
+      var repeatGuard = 0;
+      while (repeatCount > repeat.max && repeatGuard++ < cfg.pick) {
+        var repeatPool = selectedRepeat.filter(function (n) { return lastNumbers.indexOf(n) !== -1; });
+        repeatPool.sort(function (a, b) { return weightOf[a] - weightOf[b]; });
+        var dropRepeat = repeatPool[0];
+        var addRepeat = null;
+        for (var rj = 0; rj < ranking.length; rj++) {
+          var candRepeat = ranking[rj].n;
+          if (
+            selectedRepeat.indexOf(candRepeat) === -1 &&
+            lastNumbers.indexOf(candRepeat) === -1 &&
+            avoidNumbers.indexOf(candRepeat) === -1
+          ) { addRepeat = candRepeat; break; }
+        }
+        if (addRepeat === null) break;
+        selectedRepeat = selectedRepeat.filter(function (n) { return n !== dropRepeat; }).concat(addRepeat);
+        repeatCount = selectedRepeat.filter(function (n) { return lastNumbers.indexOf(n) !== -1; }).length;
+      }
+      chosen = selectedRepeat.sort(function (a, b) { return a - b; });
     }
 
     return {
@@ -358,7 +397,10 @@
         backtestWindow: meta.window,
         salt: meta.salt || 0,
         maxVotes: ranking.length ? ranking[0].votes : 0,
-        maxWeight: ranking.length ? ranking[0].weight : 0
+        maxWeight: ranking.length ? ranking[0].weight : 0,
+        repeatLimit: repeat.max,
+        repeatPenalty: repeat.penalty,
+        repeatCount: chosen.filter(function (n) { return lastNumbers.indexOf(n) !== -1; }).length
       }
     };
   }

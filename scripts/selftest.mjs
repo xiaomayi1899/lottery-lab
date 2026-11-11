@@ -97,9 +97,14 @@ for (const key of GAME_KEYS) {
     ok(a.ranking.reduce((s, r) => s + r.votes, 0) === list.length, `${key}/${zone} 票数守恒`);
     ok(a.ranking[0].weight >= a.ranking[a.ranking.length - 1].weight, `${key}/${zone} 排名按权重降序`);
     ok(a.numbers.join(',') === b.numbers.join(','), `${key}/${zone} 推荐结果可复现`);
+    const lastNumbers = (game.draws[game.draws.length - 1][zone] || []);
+    const repeats = a.numbers.filter((n) => lastNumbers.includes(n)).length;
+    ok(repeats <= a.stats.repeatLimit, `${key}/${zone} 与上期重号不超过 ${a.stats.repeatLimit} 个（实际 ${repeats}）`);
+    ok(a.stats.repeatCount === repeats, `${key}/${zone} 重号统计一致`);
     console.log(
       `  ${key}/${zone}: ${a.numbers.map((n) => fmt(n, cfg)).join(' ')}` +
       ` | ${a.details.length} 票 · ${ms}ms · 加权命中率 ${(a.stats.avgRate * 100).toFixed(1)}%` +
+      ` | 重号 ${repeats}/${a.stats.repeatLimit}` +
       ` | 票王 ${fmt(a.ranking[0].n, cfg)}（${a.ranking[0].votes} 票 / ${a.ranking[0].weight.toFixed(2)} 权重）`
     );
   }

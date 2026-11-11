@@ -1023,17 +1023,36 @@
       return L.bestOf(ctx, pool, function (n) { return L.omission(ctx, n); }, 'freq10');
     });
 
-  var byZone = { front: [], back: [] };
+  /* 3D / 排列五：0–9 单位数字公式，从后区公式派生，去掉无意义的跨度/跨区公式 */
+  var DIGIT_SKIP = ['后区跨度均值', '前区和值映射', '前区跨度映射'];
+  var digit = formulas
+    .filter(function (f) { return f.zone === 'back' && DIGIT_SKIP.indexOf(f.name) === -1; })
+    .map(function (f, i) {
+      return {
+        id: 'D' + String(i + 1).padStart(3, '0'),
+        zone: 'digit',
+        cat: f.cat,
+        name: f.name.replace(/^后区/, '位置').replace(/后区/g, '位置'),
+        desc: f.desc.replace(/后区/g, '该位置').replace(/蓝球/g, '数字'),
+        run: f.run
+      };
+    });
+  digit.forEach(function (f) { formulas.push(f); });
+
+  var byZone = { front: [], back: [], digit: [] };
   formulas.forEach(function (f) { byZone[f.zone].push(f); });
 
   var API = {
     all: formulas,
     front: byZone.front,
     back: byZone.back,
+    digit: byZone.digit,
     stats: {
-      total: formulas.length,
+      total: byZone.front.length + byZone.back.length,
       front: byZone.front.length,
       back: byZone.back.length,
+      digit: byZone.digit.length,
+      allTotal: formulas.length,
       categories: formulas.reduce(function (acc, f) {
         acc[f.cat] = (acc[f.cat] || 0) + 1;
         return acc;

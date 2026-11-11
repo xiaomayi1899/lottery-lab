@@ -1,17 +1,18 @@
 #!/usr/bin/env node
 /**
- * 通过 GitHub REST API 一键部署到 GitHub Pages（无需安装 git）
+ * 通过 GitHub REST API 一键部署（无需安装 git）
  *
  * 用法：
  *   PowerShell:
  *     $env:GITHUB_TOKEN = "ghp_xxx"
- *     node scripts/deploy.mjs 你的用户名/lottery-lab --create --pages
+ *     node scripts/deploy.mjs 你的用户名/lottery-lab --create
  *   Bash:
- *     GITHUB_TOKEN=ghp_xxx node scripts/deploy.mjs 你的用户名/lottery-lab --create --pages
+ *     GITHUB_TOKEN=ghp_xxx node scripts/deploy.mjs 你的用户名/lottery-lab --create
  *
  * 参数：
- *   --create    仓库不存在时自动创建（公开仓库）
- *   --pages     自动开启 GitHub Pages（默认开启，可用 --no-pages 关闭）
+ *   --create    仓库不存在时自动创建（默认创建**私有**仓库）
+ *   --public    显式要求公开仓库（任何人都能看到代码，默认不公开）
+ *   --pages     自动开启 GitHub Pages（默认**不开启**；公开仓库免费，私有仓库需 Pro/Team）
  *   --dry-run   只列出将上传的文件，不发请求
  *
  * Token 需要 repo 权限；要上传 .github/workflows 还需 workflow 权限。
@@ -24,7 +25,8 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2);
 const target = argv.find((a) => !a.startsWith('--'));
 const shouldCreate = argv.includes('--create');
-const setupPages = !argv.includes('--no-pages');
+const isPublic = argv.includes('--public');
+const setupPages = argv.includes('--pages');
 const dryRun = argv.includes('--dry-run');
 const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 
@@ -140,8 +142,8 @@ async function main() {
       method: 'POST',
       body: JSON.stringify({
         name: repo,
-        description: '双色球 / 大乐透公式投票选号 · 148 个数学公式 + 走势图',
-        private: false,
+        description: '双色球 / 大乐透公式投票选号 · 公式库 + 走势图',
+        private: !isPublic,
         auto_init: true,
         has_issues: true,
         has_wiki: false
@@ -152,7 +154,9 @@ async function main() {
 
   branch = info.default_branch || 'main';
   if (info.private) {
-    console.warn('⚠ 仓库是私有的。GitHub Pages 对私有仓库的支持取决于账户套餐，建议改为 Public。');
+    console.log('仓库是私有的：代码只有你能看到（私有仓库发布 Pages 需要 GitHub Pro/Team）。');
+  } else {
+    console.warn('⚠ 仓库是公开的：任何人都能查看、克隆、fork 你的代码。如需私有，请到仓库 Settings → General → Danger Zone 改成 Private。');
   }
 
   // 空仓库可能还没有分支，先建一个初始提交
@@ -197,6 +201,10 @@ async function main() {
   }
 
   console.log(`\n已上传 ${uploaded}/${files.length} 个文件。`);
+
+  if (setupPages && info.private) {
+    console.warn('⚠ 私有仓库发布 Pages 需要 GitHub Pro/Team；免费账户通常会失败，可去掉 --pages 只用私有仓库。');
+  }
 
   if (setupPages) {
     console.log('正在开启 GitHub Pages…');

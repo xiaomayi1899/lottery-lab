@@ -22,6 +22,7 @@ const ROOT = resolve(__dirname, '..');
 const HISTORY = resolve(ROOT, 'data/history.json');
 const REVIEW = resolve(ROOT, 'data/review.json');
 const WINDOW = 40;
+const FREQ_WINDOW = Number(process.env.FREQ_WINDOW ?? 30);
 const MAX_RECORDS = 200;
 
 globalThis.LotteryCore = require(resolve(ROOT, 'assets/core.js'));
@@ -71,7 +72,7 @@ function formulasFor(key, zone) {
 function recommendFor(key, data, zone) {
   const g = data[key];
   const game = Object.assign({}, Core.GAMES[key], { key, draws: g.draws });
-  const res = Core.analyze(game, zone, formulasFor(key, zone), { window: WINDOW });
+  const res = Core.analyze(game, zone, formulasFor(key, zone), { window: WINDOW, freqWindow: FREQ_WINDOW });
   const cfg = Core.GAMES[key][zone];
   const numbers = res.ranking.slice(0, cfg.pick).map((r) => r.n).sort((a, b) => a - b);
   return {

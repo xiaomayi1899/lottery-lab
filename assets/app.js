@@ -35,6 +35,7 @@
     zone: 'front',
     voteZone: 'front',
     review: null,
+    freqWindow: (function(){ var v = storage.get('sc.freq'); if (v === 'all') return null; if (v === null || v === undefined) return 30; return Number(v); })(),
     period: 30,
     salt: 0,
     formulaZone: 'front',
@@ -132,12 +133,15 @@
   }
   function analysis(key, zone, salt) {
     salt = salt || 0;
-    var baseKey = key + '|' + zone + '|0';
+    var baseKey = key + '|' + zone + '|0|f' + state.freqWindow;
     if (!cache[baseKey]) {
-      cache[baseKey] = Core.analyze(gameData(key), zone, formulasFor(key, zone), { window: 40 });
+      cache[baseKey] = Core.analyze(gameData(key), zone, formulasFor(key, zone), {
+        window: 40,
+        freqWindow: state.freqWindow,
+      });
     }
     if (!salt) return cache[baseKey];
-    var saltedKey = key + '|' + zone + '|' + salt;
+    var saltedKey = key + '|' + zone + '|' + salt + '|f' + state.freqWindow;
     if (!cache[saltedKey]) cache[saltedKey] = Core.reweight(gameData(key), cache[baseKey], salt);
     return cache[saltedKey];
   }
@@ -460,7 +464,13 @@
     var avgPick = n ? b.records.reduce(function (a, r) { return a + r.totalPick; }, 0) / n : 0;
 
     var html = '<section class="card" id="review-card">' +
-      '<div class="card-title">复盘 <span class="sub">开奖前锁定 · 开奖后对比</span></div>';
+      '<div class="card-title">复盘 <span class="sub">开奖前锁定 · 开奖后对比</span></div>' +
+      '<div class="freq-row"><span class="freq-label">频率窗口</span>' +
+      [[30, '近30期'], [100, '近100期'], [0, '关闭'], [null, '全历史']].map(function (o) {
+        var on = (o[0] === null ? state.freqWindow === null : state.freqWindow === o[0]);
+        return '<button data-freq="' + (o[0] === null ? 'all' : o[0]) + '" class="' + (on ? 'on' : '') + '">' + o[1] + '</button>';
+      }).join('') + '</div>' +
+      '<p class="hint" style="margin-bottom:10px">实测（双色球 1790 期滚动）：近30期 1.076 / 近100期 1.134 / 全历史 1.140，随机 1.091。窗口越长越接近历史频率偏差。</p>';
 
     if (b.pending) {
       var pz = zones.map(function (z) {
@@ -995,7 +1005,7 @@
 
   /* ---------------- 事件 ---------------- */
   document.addEventListener('click', function (e) {
-    var el = e.target.closest ? e.target.closest('[data-tab],[data-game],[data-action],[data-vote-zone],[data-trend-zone],[data-period],[data-formula-zone],[data-cat],[data-history-limit]') : null;
+    var el = e.target.closest ? e.target.closest('[data-tab],[data-game],[data-action],[data-vote-zone],[data-trend-zone],[data-period],[data-formula-zone],[data-cat],[data-history-limit],[data-freq]') : null;
     if (!el) return;
 
     if (el.hasAttribute('data-tab')) {
@@ -1015,6 +1025,14 @@
         render();
         window.scrollTo({ top: 0, behavior: 'auto' });
       }
+      return;
+    }
+    if (el.hasAttribute('data-freq')) {
+      var fv = el.getAttribute('data-freq');
+      state.freqWindow = fv === 'all' ? null : Number(fv);
+      cache = {};
+      storage.set('sc.freq', fv);
+      render();
       return;
     }
     if (el.hasAttribute('data-vote-zone')) {

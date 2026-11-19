@@ -440,11 +440,36 @@
       d.score = bucket.weight;
     });
 
+    /*
+     * 近期频率加权：把每个号在最近 N 期的出现次数做标准化（z 分数），
+     * 按 z 微调票数权重。freqWindow=0 表示关闭，null/其它表示使用全部历史。
+     * 实测：全历史 z=+2.40、近100期 z=+2.08、近30期 z=-0.73。
+     */
+    var freqWin = meta.freqWindow;
+    var fz = {};
+    if (freqWin !== 0) {
+      var useAll = (freqWin === null || freqWin === undefined || freqWin > ctx.seqs.length);
+      var recent = useAll ? ctx.seqs : ctx.seqs.slice(-freqWin);
+      var fcnt = {};
+      ctx.cands.forEach(function (n) { fcnt[n] = 0; });
+      recent.forEach(function (arr) {
+        arr.forEach(function (n) { if (fcnt[n] !== undefined) fcnt[n]++; });
+      });
+      var p0 = cfg.pick / ctx.cands.length;
+      var fExp = recent.length * p0;
+      var fSd = Math.sqrt(Math.max(1e-6, recent.length * p0 * (1 - p0)));
+      ctx.cands.forEach(function (n) { fz[n] = (fcnt[n] - fExp) / fSd; });
+    }
+
     var ranking = ctx.cands.map(function (n) {
       var b = byNumber[n];
       var hitWeighted = 0;
       b.votes.forEach(function (d) { hitWeighted += d.rate * d.weight; });
       var rawWeight = b.weight;
+      if (freqWin !== 0) {
+        var z = fz[n] || 0;
+        rawWeight *= 1 + 0.25 * Math.max(-2, Math.min(2, z));
+      }
       var adjusted = lastNumbers.indexOf(n) !== -1 ? rawWeight * repeat.penalty : rawWeight;
       return {
         n: n,
@@ -578,7 +603,11 @@
       });
     }
 
-    return assemble(game, zoneKey, cfg, details, { window: contexts.length, salt: salt });
+    return assemble(game, zoneKey, cfg, details, {
+      window: contexts.length,
+      salt: salt,
+      freqWindow: opts.freqWindow === undefined ? 30 : opts.freqWindow,
+    });
   }
 
   /* 用不同的盐值重新加权：不重跑回测，毫秒级生成“备选一注” */

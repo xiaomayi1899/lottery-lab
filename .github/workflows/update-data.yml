@@ -2,6 +2,10 @@ name: Update lottery data
 
 # 每天北京时间 22:40 / 23:40 抓取最新开奖（GitHub Actions 使用 UTC）
 on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'data/**'
   schedule:
     - cron: '40 14 * * *'
     - cron: '40 15 * * *'

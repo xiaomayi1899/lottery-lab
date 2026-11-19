@@ -477,7 +477,8 @@
       var rawWeight = b.weight / Math.sqrt(dup);
       if (freqWin !== 0) {
         var z = fz[n] || 0;
-        rawWeight *= 1 + 0.25 * Math.max(-2, Math.min(2, z));
+        var alpha = (meta.freqAlpha === undefined ? 0.15 : meta.freqAlpha);
+        rawWeight *= 1 + alpha * Math.max(-2, Math.min(2, z));
       }
       var adjusted = lastNumbers.indexOf(n) !== -1 ? rawWeight * repeat.penalty : rawWeight;
       return {
@@ -616,6 +617,7 @@
       window: contexts.length,
       salt: salt,
       freqWindow: opts.freqWindow === undefined ? 30 : opts.freqWindow,
+      freqAlpha: opts.freqAlpha === undefined ? 0.15 : opts.freqAlpha,
     });
   }
 

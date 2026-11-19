@@ -40,8 +40,13 @@ function readJson(p, fallback) {
 }
 
 /* 与前端 formulasFor 保持一致：每个彩种一份独立公式实例 */
-const BLACKLIST = (() => { try { return JSON.parse(readFileSync(resolve(ROOT, 'data/formula-blacklist.json'), 'utf8')); } catch { return { front: [], back: [] }; } })();
-const DROP = new Set([...(BLACKLIST.front || []), ...(BLACKLIST.back || [])]);
+const BLACKLIST = (() => { try { return JSON.parse(readFileSync(resolve(ROOT, 'data/formula-blacklist.json'), 'utf8')); } catch { return {}; } })();
+function dropSet(key, zone) {
+  const gb = BLACKLIST[key] || {};
+  const ids = gb[zone] || [];
+  const legacy = zone === 'front' ? (BLACKLIST.front || []) : (zone === 'back' ? (BLACKLIST.back || []) : []);
+  return new Set([...ids, ...legacy]);
+}
 
 function formulasFor(key, zone) {
   let base = [], extra = [];
@@ -62,7 +67,8 @@ function formulasFor(key, zone) {
   } else {
     base = (zone === 'front' || zone === 'back') ? F[zone].slice() : F.digit.slice();
   }
-  return base.concat(extra).filter((f) => !DROP.has(f.id)).map((f) => ({
+  const drop = dropSet(key, zone);
+  return base.concat(extra).filter((f) => !drop.has(f.id)).map((f) => ({
     id: key + '_' + f.id,
     baseId: f.id,
     zone: f.zone,

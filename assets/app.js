@@ -104,8 +104,18 @@
       base = (zone === 'front' || zone === 'back') ? F[zone].slice() : F.digit.slice();
     }
 
+    /* 黑名单按彩种 + 位置组织：{ ssq: { front: [...], back: [...] }, fc3d: {...} } */
     var bl = state.blacklist || {};
+    var gb = bl[key] || {};
     var drop = {};
+    (gb.front || []).forEach(function (id) { drop[id] = 1; });
+    (gb.back || []).forEach(function (id) { drop[id] = 1; });
+    /* 3D / 排列五：按位置剔除 */
+    Object.keys(gb).forEach(function (z) {
+      if (z === 'front' || z === 'back') return;
+      (gb[z] || []).forEach(function (id) { drop[id] = 1; });
+    });
+    /* 兼容旧扁平结构 */
     (bl.front || []).forEach(function (id) { drop[id] = 1; });
     (bl.back || []).forEach(function (id) { drop[id] = 1; });
 

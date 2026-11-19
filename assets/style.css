@@ -622,3 +622,7 @@ table.trend tbody tr:first-child { background: rgba(255, 196, 92, 0.06); }
 .rv-ball.actual { background: rgba(240,180,41,.18); color: #f0b429; }
 .rv-arrow { font-size: 9.5px; color: #5f6779; }
 .rv-hit { margin-left: auto; font-size: 11px; font-weight: 700; color: #2ecc8f; }
+
+.review-stats b.dim { color: #8d95a8; }
+.review-stats b.good { color: #2ecc8f; }
+.review-stats b.bad { color: #ff6b6b; }

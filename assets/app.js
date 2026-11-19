@@ -475,12 +475,20 @@
         '</div>';
     }
 
+    var st = b.stats || {};
+    var zVal = typeof st.z === 'number' ? st.z : null;
+    var zCls = zVal === null ? "" : (Math.abs(zVal) < 2 ? "dim" : (zVal > 0 ? "good" : "bad"));
     html += '<div class="review-stats">' +
       '<div><b>' + n + '</b><span>复盘期数</span></div>' +
-      '<div><b>' + avgHit.toFixed(2) + '</b><span>平均命中</span></div>' +
-      '<div><b>' + avgPick.toFixed(1) + '</b><span>每期选号</span></div>' +
-      '<div><b>' + (fwd.length) + '</b><span>前瞻记录</span></div>' +
-      '</div>';
+      '<div><b>' + avgHit.toFixed(3) + '</b><span>平均命中</span></div>' +
+      '<div><b>' + (st.randomExpect !== undefined ? st.randomExpect.toFixed(3) : '-') + '</b><span>随机期望</span></div>' +
+      '<div><b class="' + zCls + '">' + (zVal === null ? '-' : (zVal > 0 ? "+" : "") + zVal.toFixed(2)) + '</b><span>z 分数</span></div>' +
+      '</div>' +
+      '<p class="hint" style="margin-bottom:10px">' + (zVal === null ? "" :
+        (Math.abs(zVal) < 2
+          ? "z 分数 |" + zVal.toFixed(2) + "| &lt; 2，与随机选号没有统计差异；至少需要 |z| &gt; 2 才算有优势。"
+          : (zVal > 0 ? "z 分数 " + zVal.toFixed(2) + "，高于随机 2 个标准差以上。" : "z 分数 " + zVal.toFixed(2) + "，低于随机 2 个标准差以上。"))) +
+      "</p>";
 
     if (recs.length) {
       html += '<div class="review-list">';

@@ -96,6 +96,18 @@ function hitsOf(pick, actual) {
   return h;
 }
 
+function randomExpect(key) {
+  const g = Core.GAMES[key];
+  let e = 0;
+  for (const z of g.ticketZones) {
+    const cfg = g[z];
+    e += key === 'kl8'
+      ? cfg.pick * (cfg.drawPick || 20) / (cfg.max - cfg.min + 1)
+      : cfg.pick * cfg.pick / (cfg.max - cfg.min + 1);
+  }
+  return e;
+}
+
 function nextIssue(key, issue) {
   const s = String(issue || '');
   const m = s.match(/^(\d+)$/);
@@ -217,6 +229,23 @@ function main() {
     console.log(`  · ${key} 下期 ${bucket.pending.issue} -> ${preview}`);
   }
 
+  /* 统计显著性：实测命中 vs 随机期望 */
+  for (const key of games) {
+    const b = review.games[key];
+    if (!b || !b.records.length) continue;
+    const n = b.records.length;
+    const hits = b.records.reduce((a, r) => a + r.totalHits, 0);
+    const exp = randomExpect(key) * n;
+    const sd = Math.sqrt(n * randomExpect(key) * 0.9 + 1e-9);
+    b.stats = {
+      n,
+      avgHit: Math.round(hits / n * 1000) / 1000,
+      randomExpect: Math.round(exp / n * 1000) / 1000,
+      diff: Math.round((hits / n - exp / n) * 1000) / 1000,
+      z: Math.round((hits - exp) / sd * 100) / 100,
+    };
+  }
+
   review.version = 1;
   review.updatedAt = now;
   mkdirSync(dirname(REVIEW), { recursive: true });
@@ -230,7 +259,8 @@ function main() {
     const n = b.records.length;
     const hits = b.records.reduce((a, r) => a + r.totalHits, 0);
     const picks = b.records.reduce((a, r) => a + r.totalPick, 0);
-    console.log(`  ${key}: ${n} 期复盘，平均命中 ${(hits / n).toFixed(2)}/${(picks / n).toFixed(1)}`);
+    const st = b.stats || {};
+    console.log(`  ${key}: ${n} 期复盘，平均命中 ${(hits / n).toFixed(3)}，随机 ${(st.randomExpect || 0).toFixed(3)}，z=${st.z}`);
   }
 }
 

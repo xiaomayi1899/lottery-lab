@@ -1,7 +1,7 @@
 /* 数彩实验室 · 离线缓存 */
 'use strict';
 
-var CACHE = 'sc-lab-v16';
+var CACHE = 'sc-lab-v17';
 var ASSETS = [
   './index.html',
   './manifest.webmanifest',

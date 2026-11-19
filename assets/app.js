@@ -540,6 +540,12 @@
       '<div><b>' + (st.randomExpect !== undefined ? st.randomExpect.toFixed(3) : '-') + '</b><span>随机期望</span></div>' +
       '<div><b class="' + zCls + '">' + (zVal === null ? '-' : (zVal > 0 ? "+" : "") + zVal.toFixed(2)) + '</b><span>z 分数</span></div>' +
       '</div>' +
+      (st.altAvg !== undefined
+        ? '<div class="review-stats" style="grid-template-columns:repeat(2,1fr)">' +
+          '<div><b>' + st.avgHit.toFixed(3) + '</b><span>主推平均命中</span></div>' +
+          '<div><b>' + st.altAvg.toFixed(3) + '</b><span>备选平均命中</span></div>' +
+          '</div>'
+        : '') +
       '<p class="hint" style="margin-bottom:10px">' + (zVal === null ? "" :
         (Math.abs(zVal) < 2
           ? "z 分数 |" + zVal.toFixed(2) + "| &lt; 2，与随机选号没有统计差异；至少需要 |z| &gt; 2 才算有优势。"
@@ -559,11 +565,20 @@
           var acts = (zz.actual || []).map(function (x) {
             return '<span class="rv-ball actual">' + fmt(x, cfg) + '</span>';
           }).join('');
+          var altNums = (zz.alt || []).map(function (x) {
+            var hit = (zz.actual || []).indexOf(x) !== -1;
+            return '<span class="rv-ball alt' + (hit ? ' hit' : '') + '">' + fmt(x, cfg) + '</span>';
+          }).join('');
           return '<div class="rv-zone"><span class="rv-label">' + esc(cfg.label) + '</span>' +
             '<span class="rv-nums">' + nums + '</span>' +
             '<span class="rv-arrow">开</span>' +
             '<span class="rv-nums">' + acts + '</span>' +
-            '<span class="rv-hit">中 ' + (zz.hits || 0) + '</span></div>';
+            '<span class="rv-hit">中 ' + (zz.hits || 0) + '</span></div>' +
+            (altNums
+              ? '<div class="rv-zone rv-alt"><span class="rv-label">备选</span>' +
+                '<span class="rv-nums">' + altNums + '</span>' +
+                '<span class="rv-hit alt">中 ' + (zz.altHits || 0) + '</span></div>'
+              : '');
         }).join('');
         html += '<div class="review-row' + (r.backfilled ? ' backfilled' : '') + '">' +
           '<div class="rv-head"><span>' + esc(String(r.issue)) + '</span>' +

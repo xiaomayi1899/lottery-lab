@@ -92,8 +92,17 @@ function recommendFor(key, data, zone) {
   const res = Core.analyze(game, zone, formulasFor(key, zone), { window: WINDOW, freqWindow: freqWindowFor(key) });
   const cfg = Core.GAMES[key][zone];
   const numbers = res.ranking.slice(0, cfg.pick).map((r) => r.n).sort((a, b) => a - b);
+
+  /* 备选一注：用 reweight 对主推降权并重排票数 */
+  let altNumbers = [];
+  try {
+    const alt = Core.reweight(game, res, 1, numbers.slice());
+    altNumbers = alt.ranking.slice(0, cfg.pick).map((r) => r.n).sort((a, b) => a - b);
+  } catch (e) { altNumbers = []; }
+
   return {
     numbers,
+    alt: altNumbers,
     pick: cfg.pick,
     label: cfg.label,
     formulaCount: formulasFor(key, zone).length,
@@ -209,8 +218,9 @@ function main() {
           const rec = recommendFor(key, dataSlice, z);
           const actual = actualOf(draw, key, z);
           const hits = hitsOf(rec.numbers, actual);
+          const altHits = rec.alt && rec.alt.length ? hitsOf(rec.alt, actual) : 0;
           const cfg = Core.GAMES[key][z];
-          zones[z] = { label: cfg.label, numbers: rec.numbers, actual, hits, pick: cfg.pick };
+          zones[z] = { label: cfg.label, numbers: rec.numbers, alt: rec.alt || [], actual, hits, altHits, pick: cfg.pick };
           totalHits += hits;
           totalPick += cfg.pick;
         }
@@ -261,6 +271,7 @@ function main() {
       randomExpect: Math.round(exp / n * 1000) / 1000,
       diff: Math.round((hits / n - exp / n) * 1000) / 1000,
       z: Math.round((hits - exp) / sd * 100) / 100,
+      altAvg: Math.round((b.records.reduce((a, r) => a + Object.keys(r.zones).reduce((s2, z) => s2 + (r.zones[z].altHits || 0), 0), 0) / n) * 1000) / 1000,
     };
   }
 

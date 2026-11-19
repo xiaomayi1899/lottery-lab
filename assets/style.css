@@ -632,3 +632,8 @@ table.trend tbody tr:first-child { background: rgba(255, 196, 92, 0.06); }
 .freq-label { font-size: 11px; color: #8d95a8; margin-right: 2px; }
 .freq-row button { font: inherit; font-size: 11.5px; padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.04); color: #8d95a8; cursor: pointer; }
 .freq-row button.on { background: #e2453c; border-color: #e2453c; color: #fff; font-weight: 700; }
+
+.rv-zone.rv-alt { margin-top: -2px; opacity: .9; }
+.rv-ball.alt { background: rgba(255,255,255,.04); }
+.rv-ball.alt.hit { background: #ff9040; }
+.rv-hit.alt { color: #ff9040; }

@@ -30,6 +30,7 @@
     tab: 'home',
     zone: 'front',
     voteZone: 'front',
+    review: null,
     period: 30,
     salt: 0,
     formulaZone: 'front',
@@ -61,10 +62,34 @@
   function zoneCfg(key, zone) { return Core.GAMES[key][zone]; }
   function isDigitZone(cfg) { return cfg && cfg.min === 0 && cfg.max === 9; }
   function fmt(n, cfg) { return isDigitZone(cfg) ? String(n) : pad(n); }
+  /*
+   * 彩种独立公式：每个彩种拿到的是自己的一份公式实例，id 带彩种前缀
+   * （ssq_F001 / dlt_F001 ...），回测命中率、权重、复盘记录互不串用。
+   * 公式实现共享，但统计与决策完全隔离。
+   */
+  var formulaCache = {};
   function formulasFor(key, zone) {
-    if (key === 'kl8') return F.front;
-    if (zone === 'front' || zone === 'back') return F[zone];
-    return F.digit;
+    var ck = key + '|' + zone;
+    if (formulaCache[ck]) return formulaCache[ck];
+    var base;
+    if (key === 'kl8') base = F.front;
+    else if (zone === 'front' || zone === 'back') base = F[zone];
+    else base = F.digit;
+
+    var list = base.map(function (f) {
+      return {
+        id: key + '_' + f.id,
+        baseId: f.id,
+        zone: f.zone,
+        cat: f.cat,
+        name: f.name,
+        desc: f.desc,
+        run: f.run,
+        game: key
+      };
+    });
+    formulaCache[ck] = list;
+    return list;
   }
   function formulaCountFor(key) {
     return zoneKeys(key).reduce(function (sum, z) {
@@ -185,6 +210,11 @@
         return res.json();
       })
       .then(function (data) {
+        /* 复盘数据是可选增强，失败不影响主流程 */
+        fetch('data/review.json', { cache: 'no-store' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (j) { if (j) { state.review = j; if (state.data) render(); } })
+          .catch(function () {});
         if (!data || ['ssq', 'dlt', 'fc3d', 'kl8', 'pl5'].some(function (k) { return !data[k]; })) {
           throw new Error('数据格式不正确');
         }
@@ -387,7 +417,84 @@
       altHTML() +
       '</section>' +
 
+      reviewHTML() +
+
       '<p class="disclaimer">彩票每期开奖都是独立随机事件，历史走势与数学公式不能预测结果。本工具仅用于数据分析与娱乐，请理性购彩、量力而行。</p>';
+  }
+
+  /* ---------------- 复盘 ---------------- */
+  function reviewHTML() {
+    var rv = state.review;
+    if (!rv || !rv.games) {
+      return '<section class="card"><div class="card-title">复盘 <span class="sub">等待数据</span></div>' +
+        '<p class="hint">复盘数据由 <code>node scripts/review.mjs</code> 生成，每期开奖前锁定推荐、开奖后自动对比。</p></section>';
+    }
+    var b = rv.games[state.game];
+    if (!b) return '';
+    var m = meta(state.game);
+    var zones = m.ticketZones;
+    var recs = (b.records || []).slice(0, 12);
+    var fwd = (b.records || []).filter(function (r) { return !r.backfilled; });
+    var n = b.records.length;
+    var avgHit = n ? b.records.reduce(function (a, r) { return a + r.totalHits; }, 0) / n : 0;
+    var avgPick = n ? b.records.reduce(function (a, r) { return a + r.totalPick; }, 0) / n : 0;
+
+    var html = '<section class="card" id="review-card">' +
+      '<div class="card-title">复盘 <span class="sub">开奖前锁定 · 开奖后对比</span></div>';
+
+    if (b.pending) {
+      var pz = zones.map(function (z) {
+        var cfg = m[z];
+        var nums = (b.pending.zones[z] || {}).numbers || [];
+        return cfg.label + ' ' + nums.map(function (x) { return fmt(x, cfg); }).join(' ');
+      }).join(' · ');
+      html += '<div class="review-pending">' +
+        '<div class="review-pending-head">下期 ' + esc(b.pending.issue) + ' · 已锁定</div>' +
+        '<div class="review-pending-nums">' + pz + '</div>' +
+        '<div class="review-pending-note">基于 ' + esc(b.pending.basedOn) + ' 期数据生成</div>' +
+        '</div>';
+    }
+
+    html += '<div class="review-stats">' +
+      '<div><b>' + n + '</b><span>复盘期数</span></div>' +
+      '<div><b>' + avgHit.toFixed(2) + '</b><span>平均命中</span></div>' +
+      '<div><b>' + avgPick.toFixed(1) + '</b><span>每期选号</span></div>' +
+      '<div><b>' + (fwd.length) + '</b><span>前瞻记录</span></div>' +
+      '</div>';
+
+    if (recs.length) {
+      html += '<div class="review-list">';
+      recs.forEach(function (r) {
+        var cells = zones.map(function (z) {
+          var zz = r.zones[z] || {};
+          var cfg = m[z];
+          var nums = (zz.numbers || []).map(function (x) {
+            var hit = (zz.actual || []).indexOf(x) !== -1;
+            return '<span class="rv-ball' + (hit ? ' hit' : '') + '">' + fmt(x, cfg) + '</span>';
+          }).join('');
+          var acts = (zz.actual || []).map(function (x) {
+            return '<span class="rv-ball actual">' + fmt(x, cfg) + '</span>';
+          }).join('');
+          return '<div class="rv-zone"><span class="rv-label">' + esc(cfg.label) + '</span>' +
+            '<span class="rv-nums">' + nums + '</span>' +
+            '<span class="rv-arrow">开</span>' +
+            '<span class="rv-nums">' + acts + '</span>' +
+            '<span class="rv-hit">中 ' + (zz.hits || 0) + '</span></div>';
+        }).join('');
+        html += '<div class="review-row' + (r.backfilled ? ' backfilled' : '') + '">' +
+          '<div class="rv-head"><span>' + esc(String(r.issue)) + '</span>' +
+          '<span class="rv-date">' + esc((r.date || '').slice(5)) + (r.backfilled ? ' · 回补' : '') + '</span>' +
+          '<span class="rv-total">共 ' + r.totalHits + '/' + r.totalPick + '</span></div>' +
+          cells + '</div>';
+      });
+      html += '</div>';
+    } else {
+      html += '<p class="hint">还没有复盘记录。每期开奖后自动追加。</p>';
+    }
+
+    html += '<p class="hint" style="margin-top:10px">复盘记录在开奖前生成并锁定，开奖后自动比对。回补记录用历史数据事后回算，仅供参考。</p>' +
+      '</section>';
+    return html;
   }
 
   function statsGrid(s) {

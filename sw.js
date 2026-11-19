@@ -1,7 +1,7 @@
 /* 数彩实验室 · 离线缓存 */
 'use strict';
 
-var CACHE = 'sc-lab-v9';
+var CACHE = 'sc-lab-v10';
 var ASSETS = [
   './index.html',
   './manifest.webmanifest',
@@ -13,7 +13,8 @@ var ASSETS = [
   './assets/icons/icon-180.png',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
-  './data/history.json'
+  './data/history.json',
+  './data/review.json'
 ];
 
 self.addEventListener('install', function (event) {
@@ -70,7 +71,7 @@ self.addEventListener('fetch', function (event) {
   }
 
   // 开奖数据：网络优先，保证新数据可见
-  if (url.pathname.indexOf('/data/history.json') !== -1) {
+  if (url.pathname.indexOf('/data/history.json') !== -1 || url.pathname.indexOf('/data/review.json') !== -1) {
     event.respondWith(
       fetch(req, { cache: 'no-store' }).then(function (res) {
         var copy = res.clone();

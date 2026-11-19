@@ -1,0 +1,219 @@
+#!/usr/bin/env node
+/**
+ * 复盘：每期开奖前锁定推荐，开奖后自动对比，形成可追溯的战绩表。
+ *
+ * 流程：
+ *   1. 读取 data/history.json（已开奖数据）
+ *   2. 若 pending 对应的期号已经开奖 → 生成一条复盘记录（推荐 vs 实际 vs 命中）
+ *   3. 用最新数据生成下一期推荐，写入 pending
+ *   4. 写回 data/review.json
+ *
+ * 推荐逻辑与前端完全一致：同一个 core.js + formulas.js + 相同窗口。
+ */
+import { createRequire } from 'node:module';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const ROOT = resolve(__dirname, '..');
+
+const HISTORY = resolve(ROOT, 'data/history.json');
+const REVIEW = resolve(ROOT, 'data/review.json');
+const WINDOW = 40;
+const MAX_RECORDS = 200;
+
+globalThis.LotteryCore = require(resolve(ROOT, 'assets/core.js'));
+const Core = globalThis.LotteryCore;
+const F = require(resolve(ROOT, 'assets/formulas.js'));
+
+function readJson(p, fallback) {
+  try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return fallback; }
+}
+
+/* 与前端 formulasFor 保持一致：每个彩种一份独立公式实例 */
+function formulasFor(key, zone) {
+  let base;
+  if (key === 'kl8') base = F.front;
+  else if (zone === 'front' || zone === 'back') base = F[zone];
+  else base = F.digit;
+  return base.map((f) => ({
+    id: key + '_' + f.id,
+    baseId: f.id,
+    zone: f.zone,
+    cat: f.cat,
+    name: f.name,
+    desc: f.desc,
+    run: f.run,
+    game: key,
+  }));
+}
+
+function recommendFor(key, data, zone) {
+  const g = data[key];
+  const game = Object.assign({}, Core.GAMES[key], { key, draws: g.draws });
+  const res = Core.analyze(game, zone, formulasFor(key, zone), { window: WINDOW });
+  const cfg = Core.GAMES[key][zone];
+  const numbers = res.ranking.slice(0, cfg.pick).map((r) => r.n).sort((a, b) => a - b);
+  return {
+    numbers,
+    pick: cfg.pick,
+    label: cfg.label,
+    formulaCount: formulasFor(key, zone).length,
+    top: res.ranking.slice(0, 5).map((r) => ({ n: r.n, weight: Math.round(r.weight * 10) / 10, votes: r.votes })),
+  };
+}
+
+function actualOf(draw, key, zone) {
+  const g = Core.GAMES[key];
+  const arr = draw[zone];
+  if (Array.isArray(arr)) return arr.slice().sort((a, b) => a - b);
+  return [];
+}
+
+function hitsOf(pick, actual) {
+  let h = 0;
+  for (const n of pick) if (actual.indexOf(n) !== -1) h++;
+  return h;
+}
+
+function nextIssue(key, issue) {
+  const s = String(issue || '');
+  const m = s.match(/^(\d+)$/);
+  if (!m) return '';
+  try {
+    const n = BigInt(s) + 1n;
+    let out = n.toString();
+    while (out.length < s.length) out = '0' + out;
+    return out;
+  } catch {
+    return '';
+  }
+}
+
+function main() {
+  const data = readJson(HISTORY, null);
+  if (!data) {
+    console.error('读不到 data/history.json');
+    process.exit(1);
+  }
+  const review = readJson(REVIEW, { version: 1, updatedAt: '', games: {} });
+  if (!review.games) review.games = {};
+
+  const now = new Date().toISOString();
+  const games = Object.keys(Core.GAMES);
+
+  for (const key of games) {
+    const g = data[key];
+    if (!g || !g.draws || g.draws.length < WINDOW + 10) continue;
+    const zoneKeys = Core.GAMES[key].ticketZones;
+    const last = g.draws[g.draws.length - 1];
+    const bucket = review.games[key] || { records: [], pending: null };
+
+    /* 1) pending 对应的期已开奖 → 落成复盘记录 */
+    if (bucket.pending && bucket.pending.issue === String(last.issue)) {
+      const zones = {};
+      let totalHits = 0;
+      let totalPick = 0;
+      for (const z of zoneKeys) {
+        const pick = (bucket.pending.zones[z] || {}).numbers || [];
+        const actual = actualOf(last, key, z);
+        const hits = hitsOf(pick, actual);
+        const cfg = Core.GAMES[key][z];
+        zones[z] = {
+          label: cfg.label,
+          numbers: pick,
+          actual,
+          hits,
+          pick: cfg.pick,
+        };
+        totalHits += hits;
+        totalPick += cfg.pick;
+      }
+      bucket.records.unshift({
+        issue: String(last.issue),
+        date: last.date || '',
+        zones,
+        totalHits,
+        totalPick,
+        lockedAt: bucket.pending.lockedAt || '',
+        recordedAt: now,
+      });
+      if (bucket.records.length > MAX_RECORDS) bucket.records.length = MAX_RECORDS;
+      console.log(`  ✓ ${key} ${last.issue} 复盘：命中 ${totalHits}/${totalPick}`);
+      bucket.pending = null;
+    }
+
+    /* 1.5) 首次运行或记录不足时，回补最近 BACKFILL 期，便于查看历史表现 */
+    const BACKFILL = 30;
+    if (bucket.records.length < BACKFILL) {
+      const have = new Set(bucket.records.map((r) => r.issue));
+      const start = Math.max(WINDOW + 5, g.draws.length - BACKFILL);
+      for (let i = g.draws.length - 1; i >= start; i--) {
+        const draw = g.draws[i];
+        if (have.has(String(draw.issue))) continue;
+        const hist = Object.assign({}, g, { draws: g.draws.slice(0, i) });
+        const dataSlice = Object.assign({}, data, { [key]: hist });
+        const zones = {};
+        let totalHits = 0, totalPick = 0;
+        for (const z of zoneKeys) {
+          const rec = recommendFor(key, dataSlice, z);
+          const actual = actualOf(draw, key, z);
+          const hits = hitsOf(rec.numbers, actual);
+          const cfg = Core.GAMES[key][z];
+          zones[z] = { label: cfg.label, numbers: rec.numbers, actual, hits, pick: cfg.pick };
+          totalHits += hits;
+          totalPick += cfg.pick;
+        }
+        bucket.records.push({
+          issue: String(draw.issue),
+          date: draw.date || '',
+          zones,
+          totalHits,
+          totalPick,
+          backfilled: true,
+          recordedAt: now,
+        });
+        have.add(String(draw.issue));
+      }
+      bucket.records.sort((a, b) => String(b.issue).localeCompare(String(a.issue)));
+      if (bucket.records.length > MAX_RECORDS) bucket.records.length = MAX_RECORDS;
+      console.log(`  · ${key} 回补 ${bucket.records.length} 期复盘`);
+    }
+
+    /* 2) 生成下一期推荐并锁定 */
+    const zones = {};
+    for (const z of zoneKeys) {
+      zones[z] = recommendFor(key, data, z);
+    }
+    bucket.pending = {
+      issue: nextIssue(key, last.issue),
+      basedOn: String(last.issue),
+      zones,
+      lockedAt: now,
+    };
+
+    review.games[key] = bucket;
+    const preview = zoneKeys.map((z) => zones[z].numbers.join(',')).join(' + ');
+    console.log(`  · ${key} 下期 ${bucket.pending.issue} -> ${preview}`);
+  }
+
+  review.version = 1;
+  review.updatedAt = now;
+  mkdirSync(dirname(REVIEW), { recursive: true });
+  writeFileSync(REVIEW, JSON.stringify(review, null, 1) + '\n', 'utf8');
+  console.log('写入 data/review.json');
+
+  /* 3) 统计 */
+  for (const key of games) {
+    const b = review.games[key];
+    if (!b || !b.records.length) continue;
+    const n = b.records.length;
+    const hits = b.records.reduce((a, r) => a + r.totalHits, 0);
+    const picks = b.records.reduce((a, r) => a + r.totalPick, 0);
+    console.log(`  ${key}: ${n} 期复盘，平均命中 ${(hits / n).toFixed(2)}/${(picks / n).toFixed(1)}`);
+  }
+}
+
+main();

@@ -598,3 +598,27 @@ table.trend tbody tr:first-child { background: rgba(255, 196, 92, 0.06); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
 }
+
+/* 复盘 */
+.review-pending { margin-bottom: 14px; padding: 12px; border-radius: 12px; background: rgba(46,204,143,.07); border: 1px solid rgba(46,204,143,.25); }
+.review-pending-head { font-size: 12px; font-weight: 700; color: #2ecc8f; margin-bottom: 6px; }
+.review-pending-nums { font-size: 14px; font-weight: 600; letter-spacing: .5px; }
+.review-pending-note { font-size: 11px; color: #8d95a8; margin-top: 5px; }
+.review-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+.review-stats > div { text-align: center; padding: 8px 4px; border-radius: 10px; background: rgba(255,255,255,.03); }
+.review-stats b { display: block; font-size: 18px; font-variant-numeric: tabular-nums; }
+.review-stats span { font-size: 10.5px; color: #8d95a8; }
+.review-list { display: flex; flex-direction: column; gap: 8px; }
+.review-row { padding: 10px; border-radius: 10px; background: rgba(255,255,255,.03); font-size: 12px; }
+.review-row.backfilled { opacity: .72; }
+.rv-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-weight: 650; }
+.rv-date { font-size: 10.5px; color: #5f6779; font-weight: 400; }
+.rv-total { margin-left: auto; font-size: 11.5px; color: #f0b429; }
+.rv-zone { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 3px 0; }
+.rv-label { font-size: 10.5px; color: #8d95a8; width: 34px; flex: 0 0 auto; }
+.rv-nums { display: flex; gap: 3px; flex-wrap: wrap; }
+.rv-ball { min-width: 20px; height: 20px; display: inline-grid; place-items: center; border-radius: 5px; background: rgba(255,255,255,.06); color: #8d95a8; font-size: 10.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rv-ball.hit { background: #e2453c; color: #fff; }
+.rv-ball.actual { background: rgba(240,180,41,.18); color: #f0b429; }
+.rv-arrow { font-size: 9.5px; color: #5f6779; }
+.rv-hit { margin-left: auto; font-size: 11px; font-weight: 700; color: #2ecc8f; }

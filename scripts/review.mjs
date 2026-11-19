@@ -32,22 +32,27 @@ const KL8 = require(resolve(ROOT, 'assets/formulas-kl8.js'));
 const SSQ = require(resolve(ROOT, 'assets/formulas-ssq.js'));
 const DLT = require(resolve(ROOT, 'assets/formulas-dlt.js'));
 const DIGIT = require(resolve(ROOT, 'assets/formulas-digit.js'));
+const SSQF = require(resolve(ROOT, 'assets/formulas-ssq-full.js'));
+const DLTF = require(resolve(ROOT, 'assets/formulas-dlt-full.js'));
 
 function readJson(p, fallback) {
   try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return fallback; }
 }
 
 /* 与前端 formulasFor 保持一致：每个彩种一份独立公式实例 */
+const BLACKLIST = (() => { try { return JSON.parse(readFileSync(resolve(ROOT, 'data/formula-blacklist.json'), 'utf8')); } catch { return { front: [], back: [] }; } })();
+const DROP = new Set([...(BLACKLIST.front || []), ...(BLACKLIST.back || [])]);
+
 function formulasFor(key, zone) {
   let base = [], extra = [];
   if (key === 'kl8') {
     base = KL8.all;
   } else if (key === 'ssq') {
-    base = (zone === 'front' || zone === 'back') ? F[zone].slice() : F.digit.slice();
+    base = (zone === 'front') ? SSQF.front.slice() : (zone === 'back' ? SSQF.back.slice() : F.digit.slice());
     if (zone === 'front') extra = SSQ.front;
     else if (zone === 'back') extra = SSQ.back;
   } else if (key === 'dlt') {
-    base = (zone === 'front' || zone === 'back') ? F[zone].slice() : F.digit.slice();
+    base = (zone === 'front') ? DLTF.front.slice() : (zone === 'back' ? DLTF.back.slice() : F.digit.slice());
     if (zone === 'front') extra = DLT.front;
     else if (zone === 'back') extra = DLT.back;
   } else if (key === 'fc3d' || key === 'pl5') {
@@ -57,7 +62,7 @@ function formulasFor(key, zone) {
   } else {
     base = (zone === 'front' || zone === 'back') ? F[zone].slice() : F.digit.slice();
   }
-  return base.concat(extra).map((f) => ({
+  return base.concat(extra).filter((f) => !DROP.has(f.id)).map((f) => ({
     id: key + '_' + f.id,
     baseId: f.id,
     zone: f.zone,

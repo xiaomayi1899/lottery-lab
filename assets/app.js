@@ -8,6 +8,8 @@
   var SSQ = window.LotterySSQ;
   var DLT = window.LotteryDLT;
   var DIGIT = window.LotteryDigit;
+  var SSQF = window.LotterySSQFull;
+  var DLTF = window.LotteryDLTFull;
   var Charts = window.Charts;
   if (!Core || !F) return;
 
@@ -35,6 +37,7 @@
     zone: 'front',
     voteZone: 'front',
     review: null,
+    blacklist: null,
     freqWindow: (function(){ var v = storage.get('sc.freq'); if (v === 'all') return null; if (v === null || v === undefined) return 30; return Number(v); })(),
     period: 30,
     salt: 0,
@@ -82,11 +85,15 @@
     if (key === 'kl8') {
       base = (KL8 && KL8.all) ? KL8.all : F.front;
     } else if (key === 'ssq') {
-      base = (zone === 'front' || zone === 'back') ? F[zone].slice() : F.digit.slice();
+      /* 双色球使用自己的完整公式副本 SSQF，不再引用共享的 F.front/F.back */
+      base = (zone === 'front') ? (SSQF ? SSQF.front.slice() : F.front.slice())
+        : (zone === 'back' ? (SSQF ? SSQF.back.slice() : F.back.slice()) : F.digit.slice());
       if (zone === 'front' && SSQ) extra = SSQ.front;
       else if (zone === 'back' && SSQ) extra = SSQ.back;
     } else if (key === 'dlt') {
-      base = (zone === 'front' || zone === 'back') ? F[zone].slice() : F.digit.slice();
+      /* 大乐透使用自己的完整公式副本 DLTF */
+      base = (zone === 'front') ? (DLTF ? DLTF.front.slice() : F.front.slice())
+        : (zone === 'back' ? (DLTF ? DLTF.back.slice() : F.back.slice()) : F.digit.slice());
       if (zone === 'front' && DLT) extra = DLT.front;
       else if (zone === 'back' && DLT) extra = DLT.back;
     } else if (key === 'fc3d' || key === 'pl5') {
@@ -97,7 +104,15 @@
       base = (zone === 'front' || zone === 'back') ? F[zone].slice() : F.digit.slice();
     }
 
-    var list = base.concat(extra).map(function (f) {
+    var bl = state.blacklist || {};
+    var drop = {};
+    (bl.front || []).forEach(function (id) { drop[id] = 1; });
+    (bl.back || []).forEach(function (id) { drop[id] = 1; });
+
+    var list = base.concat(extra).filter(function (f) {
+      /* 剔除 200 期回测中显著低于随机的公式 */
+      return !drop[f.id];
+    }).map(function (f) {
       return {
         id: key + '_' + f.id,
         baseId: f.id,
@@ -235,6 +250,10 @@
       })
       .then(function (data) {
         /* 复盘数据是可选增强，失败不影响主流程 */
+        fetch('data/formula-blacklist.json', { cache: 'no-store' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (j) { if (j) { state.blacklist = j; cache = {}; if (state.data) render(); } })
+          .catch(function () {});
         fetch('data/review.json', { cache: 'no-store' })
           .then(function (r) { return r.ok ? r.json() : null; })
           .then(function (j) { if (j) { state.review = j; if (state.data) render(); } })

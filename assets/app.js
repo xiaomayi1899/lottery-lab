@@ -38,7 +38,8 @@
     voteZone: 'front',
     review: null,
     blacklist: null,
-    freqWindow: (function(){ var v = storage.get('sc.freq'); if (v === 'all') return null; if (v === null || v === undefined) return 30; return Number(v); })(),
+    /* null = 用户在页面上手动指定过；否则按彩种取默认最优窗口 */
+    freqWindow: (function(){ var v = storage.get('sc.freq'); if (v === null || v === undefined) return undefined; if (v === 'all') return null; return Number(v); })(),
     period: 30,
     salt: 0,
     formulaZone: 'front',
@@ -76,6 +77,19 @@
    * 公式实现共享，但统计与决策完全隔离。
    */
   var formulaCache = {};
+  /*
+   * 各彩种频率加权的最优窗口（2090/2950 期滚动实测）：
+   *   双色球：全历史 1.1402（z=+2.40）> 近100期 1.1335 > 近30期 1.0760
+   *   大乐透：全历史 0.7891 但偏差已消失（2024-2026 仅 0.6600），用近30期 0.7250
+   *   3D/快乐8/排列五：数据均匀，关闭加权
+   */
+  var FREQ_DEFAULT = { ssq: null, dlt: 30, fc3d: 0, kl8: 0, pl5: 0 };
+
+  function freqWindowFor(key) {
+    if (state.freqWindow !== undefined) return state.freqWindow;
+    return FREQ_DEFAULT[key] === undefined ? 30 : FREQ_DEFAULT[key];
+  }
+
   function formulasFor(key, zone) {
     var ck = key + '|' + zone;
     if (formulaCache[ck]) return formulaCache[ck];
@@ -158,15 +172,15 @@
   }
   function analysis(key, zone, salt) {
     salt = salt || 0;
-    var baseKey = key + '|' + zone + '|0|f' + state.freqWindow;
+    var baseKey = key + '|' + zone + '|0|f' + freqWindowFor(key);
     if (!cache[baseKey]) {
       cache[baseKey] = Core.analyze(gameData(key), zone, formulasFor(key, zone), {
         window: 40,
-        freqWindow: state.freqWindow,
+        freqWindow: freqWindowFor(key),
       });
     }
     if (!salt) return cache[baseKey];
-    var saltedKey = key + '|' + zone + '|' + salt + '|f' + state.freqWindow;
+    var saltedKey = key + '|' + zone + '|' + salt + '|f' + freqWindowFor(key);
     if (!cache[saltedKey]) cache[saltedKey] = Core.reweight(gameData(key), cache[baseKey], salt);
     return cache[saltedKey];
   }
@@ -496,10 +510,13 @@
       '<div class="card-title">复盘 <span class="sub">开奖前锁定 · 开奖后对比</span></div>' +
       '<div class="freq-row"><span class="freq-label">频率窗口</span>' +
       [[30, '近30期'], [100, '近100期'], [0, '关闭'], [null, '全历史']].map(function (o) {
-        var on = (o[0] === null ? state.freqWindow === null : state.freqWindow === o[0]);
+        var cur = freqWindowFor(state.game);
+        var on = (o[0] === null ? cur === null : cur === o[0]);
         return '<button data-freq="' + (o[0] === null ? 'all' : o[0]) + '" class="' + (on ? 'on' : '') + '">' + o[1] + '</button>';
       }).join('') + '</div>' +
-      '<p class="hint" style="margin-bottom:10px">实测（双色球 1790 期滚动）：近30期 1.076 / 近100期 1.134 / 全历史 1.140，随机 1.091。窗口越长越接近历史频率偏差。</p>';
+      '<p class="hint" style="margin-bottom:10px">当前彩种默认窗口：' +
+      (FREQ_DEFAULT[state.game] === null ? '全历史' : (FREQ_DEFAULT[state.game] === 0 ? '关闭' : FREQ_DEFAULT[state.game] + ' 期')) +
+      '。实测（双色球 1790 期滚动）：近30期 1.076 / 近100期 1.134 / 全历史 1.140，随机 1.091。</p>';
 
     if (b.pending) {
       var pz = zones.map(function (z) {

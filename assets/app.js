@@ -4,6 +4,10 @@
 
   var Core = window.LotteryCore;
   var F = window.LotteryFormulas;
+  var KL8 = window.LotteryKL8;
+  var SSQ = window.LotterySSQ;
+  var DLT = window.LotteryDLT;
+  var DIGIT = window.LotteryDigit;
   var Charts = window.Charts;
   if (!Core || !F) return;
 
@@ -71,12 +75,28 @@
   function formulasFor(key, zone) {
     var ck = key + '|' + zone;
     if (formulaCache[ck]) return formulaCache[ck];
-    var base;
-    if (key === 'kl8') base = F.front;
-    else if (zone === 'front' || zone === 'back') base = F[zone];
-    else base = F.digit;
 
-    var list = base.map(function (f) {
+    /* 每个彩种 = 基础公式 + 该彩种专属公式，三套公式集互不相同 */
+    var base = [], extra = [];
+    if (key === 'kl8') {
+      base = (KL8 && KL8.all) ? KL8.all : F.front;
+    } else if (key === 'ssq') {
+      base = (zone === 'front' || zone === 'back') ? F[zone].slice() : F.digit.slice();
+      if (zone === 'front' && SSQ) extra = SSQ.front;
+      else if (zone === 'back' && SSQ) extra = SSQ.back;
+    } else if (key === 'dlt') {
+      base = (zone === 'front' || zone === 'back') ? F[zone].slice() : F.digit.slice();
+      if (zone === 'front' && DLT) extra = DLT.front;
+      else if (zone === 'back' && DLT) extra = DLT.back;
+    } else if (key === 'fc3d' || key === 'pl5') {
+      var D = (DIGIT && (key === 'fc3d' ? DIGIT.fc3d : DIGIT.pl5)) || null;
+      var byZone = D && D.byZone ? D.byZone[zone] : null;
+      base = byZone && byZone.length ? byZone : F.digit.slice();
+    } else {
+      base = (zone === 'front' || zone === 'back') ? F[zone].slice() : F.digit.slice();
+    }
+
+    var list = base.concat(extra).map(function (f) {
       return {
         id: key + '_' + f.id,
         baseId: f.id,

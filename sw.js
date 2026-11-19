@@ -1,13 +1,17 @@
 /* 数彩实验室 · 离线缓存 */
 'use strict';
 
-var CACHE = 'sc-lab-v10';
+var CACHE = 'sc-lab-v11';
 var ASSETS = [
   './index.html',
   './manifest.webmanifest',
   './assets/style.css',
   './assets/core.js',
   './assets/formulas.js',
+  './assets/formulas-kl8.js',
+  './assets/formulas-ssq.js',
+  './assets/formulas-dlt.js',
+  './assets/formulas-digit.js',
   './assets/charts.js',
   './assets/app.js',
   './assets/icons/icon-180.png',

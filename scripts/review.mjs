@@ -27,6 +27,10 @@ const MAX_RECORDS = 200;
 globalThis.LotteryCore = require(resolve(ROOT, 'assets/core.js'));
 const Core = globalThis.LotteryCore;
 const F = require(resolve(ROOT, 'assets/formulas.js'));
+const KL8 = require(resolve(ROOT, 'assets/formulas-kl8.js'));
+const SSQ = require(resolve(ROOT, 'assets/formulas-ssq.js'));
+const DLT = require(resolve(ROOT, 'assets/formulas-dlt.js'));
+const DIGIT = require(resolve(ROOT, 'assets/formulas-digit.js'));
 
 function readJson(p, fallback) {
   try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return fallback; }
@@ -34,11 +38,25 @@ function readJson(p, fallback) {
 
 /* 与前端 formulasFor 保持一致：每个彩种一份独立公式实例 */
 function formulasFor(key, zone) {
-  let base;
-  if (key === 'kl8') base = F.front;
-  else if (zone === 'front' || zone === 'back') base = F[zone];
-  else base = F.digit;
-  return base.map((f) => ({
+  let base = [], extra = [];
+  if (key === 'kl8') {
+    base = KL8.all;
+  } else if (key === 'ssq') {
+    base = (zone === 'front' || zone === 'back') ? F[zone].slice() : F.digit.slice();
+    if (zone === 'front') extra = SSQ.front;
+    else if (zone === 'back') extra = SSQ.back;
+  } else if (key === 'dlt') {
+    base = (zone === 'front' || zone === 'back') ? F[zone].slice() : F.digit.slice();
+    if (zone === 'front') extra = DLT.front;
+    else if (zone === 'back') extra = DLT.back;
+  } else if (key === 'fc3d' || key === 'pl5') {
+    const D = key === 'fc3d' ? DIGIT.fc3d : DIGIT.pl5;
+    const bz = D && D.byZone ? D.byZone[zone] : null;
+    base = bz && bz.length ? bz : F.digit.slice();
+  } else {
+    base = (zone === 'front' || zone === 'back') ? F[zone].slice() : F.digit.slice();
+  }
+  return base.concat(extra).map((f) => ({
     id: key + '_' + f.id,
     baseId: f.id,
     zone: f.zone,

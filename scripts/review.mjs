@@ -39,6 +39,7 @@ const SSQ = require(resolve(ROOT, 'assets/formulas-ssq.js'));
 const DLT = require(resolve(ROOT, 'assets/formulas-dlt.js'));
 const DIGIT = require(resolve(ROOT, 'assets/formulas-digit.js'));
 const SSQF = require(resolve(ROOT, 'assets/formulas-ssq-full.js'));
+const EXTRA = require(resolve(ROOT, 'assets/formulas-extra.js'));
 const DLTF = require(resolve(ROOT, 'assets/formulas-dlt-full.js'));
 
 function readJson(p, fallback) {
@@ -62,10 +63,12 @@ function formulasFor(key, zone) {
     base = (zone === 'front') ? SSQF.front.slice() : (zone === 'back' ? SSQF.back.slice() : F.digit.slice());
     if (zone === 'front') extra = SSQ.front;
     else if (zone === 'back') extra = SSQ.back;
+    if (EXTRA && EXTRA.ssq) extra = extra.concat(zone === 'front' ? EXTRA.ssq.front : EXTRA.ssq.back);
   } else if (key === 'dlt') {
     base = (zone === 'front') ? DLTF.front.slice() : (zone === 'back' ? DLTF.back.slice() : F.digit.slice());
     if (zone === 'front') extra = DLT.front;
     else if (zone === 'back') extra = DLT.back;
+    if (EXTRA && EXTRA.dlt) extra = extra.concat(zone === 'front' ? EXTRA.dlt.front : EXTRA.dlt.back);
   } else if (key === 'fc3d' || key === 'pl5') {
     const D = key === 'fc3d' ? DIGIT.fc3d : DIGIT.pl5;
     const bz = D && D.byZone ? D.byZone[zone] : null;
@@ -203,7 +206,7 @@ function main() {
     }
 
     /* 1.5) 首次运行或记录不足时，回补最近 BACKFILL 期，便于查看历史表现 */
-    const BACKFILL = 30;
+    const BACKFILL = Number(process.env.BACKFILL || 30);
     if (bucket.records.length < BACKFILL) {
       const have = new Set(bucket.records.map((r) => r.issue));
       const start = Math.max(WINDOW + 5, g.draws.length - BACKFILL);

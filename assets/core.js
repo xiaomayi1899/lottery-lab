@@ -461,11 +461,20 @@
       ctx.cands.forEach(function (n) { fz[n] = (fcnt[n] - fExp) / fSd; });
     }
 
+    /*
+     * 冗余压缩：很多公式逻辑相同（例如 5 个不同窗口的「冷号」公式会同时指向
+     * 同一个最冷号码），直接累加会让投票赢家通吃、长期固定推同一个号。
+     * 这里按「推荐该号的公式数」开根号压缩，让不同思路的号码有机会浮现。
+     */
+    var recCount = {};
+    details.forEach(function (d) { recCount[d.rec] = (recCount[d.rec] || 0) + 1; });
+
     var ranking = ctx.cands.map(function (n) {
       var b = byNumber[n];
       var hitWeighted = 0;
       b.votes.forEach(function (d) { hitWeighted += d.rate * d.weight; });
-      var rawWeight = b.weight;
+      var dup = recCount[n] || 1;
+      var rawWeight = b.weight / Math.sqrt(dup);
       if (freqWin !== 0) {
         var z = fz[n] || 0;
         rawWeight *= 1 + 0.25 * Math.max(-2, Math.min(2, z));

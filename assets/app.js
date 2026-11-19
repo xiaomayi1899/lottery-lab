@@ -10,6 +10,7 @@
   var DIGIT = window.LotteryDigit;
   var SSQF = window.LotterySSQFull;
   var DLTF = window.LotteryDLTFull;
+  var EXTRA = window.LotteryExtra;
   var Charts = window.Charts;
   if (!Core || !F) return;
 
@@ -104,12 +105,14 @@
         : (zone === 'back' ? (SSQF ? SSQF.back.slice() : F.back.slice()) : F.digit.slice());
       if (zone === 'front' && SSQ) extra = SSQ.front;
       else if (zone === 'back' && SSQ) extra = SSQ.back;
+      if (EXTRA && EXTRA.ssq) extra = extra.concat(zone === 'front' ? EXTRA.ssq.front : EXTRA.ssq.back);
     } else if (key === 'dlt') {
       /* 大乐透使用自己的完整公式副本 DLTF */
       base = (zone === 'front') ? (DLTF ? DLTF.front.slice() : F.front.slice())
         : (zone === 'back' ? (DLTF ? DLTF.back.slice() : F.back.slice()) : F.digit.slice());
       if (zone === 'front' && DLT) extra = DLT.front;
       else if (zone === 'back' && DLT) extra = DLT.back;
+      if (EXTRA && EXTRA.dlt) extra = extra.concat(zone === 'front' ? EXTRA.dlt.front : EXTRA.dlt.back);
     } else if (key === 'fc3d' || key === 'pl5') {
       var D = (DIGIT && (key === 'fc3d' ? DIGIT.fc3d : DIGIT.pl5)) || null;
       var byZone = D && D.byZone ? D.byZone[zone] : null;

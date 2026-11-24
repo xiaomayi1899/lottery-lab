@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": "2026-11-22T21:14:48.229Z",
+ "updatedAt": "2026-11-24T01:53:48.737Z",
  "games": {
   "ssq": {
    "records": [
@@ -11070,7 +11070,7 @@
       ]
      }
     },
-    "lockedAt": "2026-11-22T21:14:48.229Z"
+    "lockedAt": "2026-11-24T01:53:48.737Z"
    },
    "stats": {
     "n": 200,
@@ -11083,6 +11083,48 @@
   },
   "dlt": {
    "records": [
+    {
+     "issue": "26134",
+     "date": "2026-11-23",
+     "zones": {
+      "front": {
+       "label": "前区",
+       "numbers": [
+        2,
+        4,
+        14,
+        18,
+        26
+       ],
+       "actual": [
+        4,
+        15,
+        17,
+        24,
+        31
+       ],
+       "hits": 1,
+       "pick": 5
+      },
+      "back": {
+       "label": "后区",
+       "numbers": [
+        1,
+        12
+       ],
+       "actual": [
+        6,
+        9
+       ],
+       "hits": 0,
+       "pick": 2
+      }
+     },
+     "totalHits": 1,
+     "totalPick": 7,
+     "lockedAt": "2026-11-22T21:14:48.229Z",
+     "recordedAt": "2026-11-24T01:53:48.737Z"
+    },
     {
      "issue": "26133",
      "date": "2026-11-21",
@@ -22014,110 +22056,55 @@
      "totalPick": 7,
      "backfilled": true,
      "recordedAt": "2026-11-19T05:23:40.547Z"
-    },
-    {
-     "issue": "25084",
-     "date": "2025-07-26",
-     "zones": {
-      "front": {
-       "label": "前区",
-       "numbers": [
-        11,
-        15,
-        18,
-        22,
-        29
-       ],
-       "alt": [
-        2,
-        12,
-        14,
-        20,
-        30
-       ],
-       "actual": [
-        9,
-        11,
-        13,
-        18,
-        29
-       ],
-       "hits": 3,
-       "altHits": 0,
-       "pick": 5
-      },
-      "back": {
-       "label": "后区",
-       "numbers": [
-        1,
-        7
-       ],
-       "alt": [
-        4,
-        11
-       ],
-       "actual": [
-        4,
-        11
-       ],
-       "hits": 0,
-       "altHits": 2,
-       "pick": 2
-      }
-     },
-     "totalHits": 3,
-     "totalPick": 7,
-     "backfilled": true,
-     "recordedAt": "2026-11-19T05:23:40.547Z"
     }
    ],
    "pending": {
-    "issue": "26134",
-    "basedOn": "26133",
+    "issue": "26135",
+    "basedOn": "26134",
     "zones": {
      "front": {
       "numbers": [
        2,
-       4,
-       14,
-       18,
-       26
+       8,
+       11,
+       21,
+       25
       ],
       "alt": [
-       11,
-       12,
+       3,
+       10,
+       14,
        20,
-       22,
-       31
+       32
       ],
       "pick": 5,
       "label": "前区",
       "formulaCount": 164,
       "top": [
        {
-        "n": 4,
-        "weight": 2.5,
-        "votes": 20
+        "n": 25,
+        "weight": 3.4,
+        "votes": 17
        },
        {
-        "n": 2,
-        "weight": 2.3,
+        "n": 11,
+        "weight": 2.5,
+        "votes": 14
+       },
+       {
+        "n": 8,
+        "weight": 2.2,
+        "votes": 14
+       },
+       {
+        "n": 21,
+        "weight": 2.2,
         "votes": 10
        },
        {
-        "n": 18,
-        "weight": 2,
-        "votes": 9
-       },
-       {
-        "n": 14,
-        "weight": 2,
-        "votes": 7
-       },
-       {
-        "n": 26,
-        "weight": 1.8,
-        "votes": 8
+        "n": 2,
+        "weight": 2.1,
+        "votes": 10
        }
       ]
      },
@@ -22127,54 +22114,97 @@
        12
       ],
       "alt": [
-       5,
-       9
+       4,
+       5
       ],
       "pick": 2,
       "label": "后区",
       "formulaCount": 84,
       "top": [
        {
-        "n": 12,
-        "weight": 2.8,
-        "votes": 11
+        "n": 1,
+        "weight": 2.5,
+        "votes": 10
        },
        {
-        "n": 1,
-        "weight": 2.4,
+        "n": 12,
+        "weight": 2.5,
         "votes": 8
        },
        {
+        "n": 4,
+        "weight": 2.2,
+        "votes": 6
+       },
+       {
         "n": 7,
-        "weight": 2.1,
-        "votes": 7
+        "weight": 2,
+        "votes": 8
        },
        {
         "n": 9,
-        "weight": 2,
-        "votes": 16
-       },
-       {
-        "n": 6,
-        "weight": 1.7,
-        "votes": 7
+        "weight": 1.8,
+        "votes": 11
        }
       ]
      }
     },
-    "lockedAt": "2026-11-22T21:14:48.229Z"
+    "lockedAt": "2026-11-24T01:53:48.737Z"
    },
    "stats": {
     "n": 200,
-    "avgHit": 1.015,
+    "avgHit": 1.005,
     "randomExpect": 1.048,
-    "diff": -0.033,
-    "z": -0.48,
-    "altAvg": 0.965
+    "diff": -0.043,
+    "z": -0.62,
+    "altAvg": 0.955
    }
   },
   "fc3d": {
    "records": [
+    {
+     "issue": "2026313",
+     "date": "2026-11-23",
+     "zones": {
+      "hundreds": {
+       "label": "百位",
+       "numbers": [
+        1
+       ],
+       "actual": [
+        3
+       ],
+       "hits": 0,
+       "pick": 1
+      },
+      "tens": {
+       "label": "十位",
+       "numbers": [
+        7
+       ],
+       "actual": [
+        4
+       ],
+       "hits": 0,
+       "pick": 1
+      },
+      "units": {
+       "label": "个位",
+       "numbers": [
+        4
+       ],
+       "actual": [
+        6
+       ],
+       "hits": 0,
+       "pick": 1
+      }
+     },
+     "totalHits": 0,
+     "totalPick": 3,
+     "lockedAt": "2026-11-22T21:14:48.229Z",
+     "recordedAt": "2026-11-24T01:53:48.737Z"
+    },
     {
      "issue": "2026312",
      "date": "2026-11-22",
@@ -33071,87 +33101,32 @@
      "totalPick": 3,
      "backfilled": true,
      "recordedAt": "2026-11-19T05:23:40.547Z"
-    },
-    {
-     "issue": "2026113",
-     "date": "2026-05-03",
-     "zones": {
-      "hundreds": {
-       "label": "百位",
-       "numbers": [
-        6
-       ],
-       "alt": [
-        8
-       ],
-       "actual": [
-        0
-       ],
-       "hits": 0,
-       "altHits": 0,
-       "pick": 1
-      },
-      "tens": {
-       "label": "十位",
-       "numbers": [
-        1
-       ],
-       "alt": [
-        4
-       ],
-       "actual": [
-        4
-       ],
-       "hits": 0,
-       "altHits": 1,
-       "pick": 1
-      },
-      "units": {
-       "label": "个位",
-       "numbers": [
-        6
-       ],
-       "alt": [
-        4
-       ],
-       "actual": [
-        0
-       ],
-       "hits": 0,
-       "altHits": 0,
-       "pick": 1
-      }
-     },
-     "totalHits": 0,
-     "totalPick": 3,
-     "backfilled": true,
-     "recordedAt": "2026-11-19T05:23:40.547Z"
     }
    ],
    "pending": {
-    "issue": "2026313",
-    "basedOn": "2026312",
+    "issue": "2026314",
+    "basedOn": "2026313",
     "zones": {
      "hundreds": {
       "numbers": [
-       1
+       9
       ],
       "alt": [
-       8
+       4
       ],
       "pick": 1,
       "label": "百位",
       "formulaCount": 9,
       "top": [
        {
-        "n": 1,
-        "weight": 0.7,
-        "votes": 3
-       },
-       {
-        "n": 5,
+        "n": 9,
         "weight": 0.7,
         "votes": 2
+       },
+       {
+        "n": 4,
+        "weight": 0.6,
+        "votes": 1
        },
        {
         "n": 8,
@@ -33159,12 +33134,12 @@
         "votes": 1
        },
        {
-        "n": 3,
-        "weight": 0.5,
-        "votes": 1
+        "n": 1,
+        "weight": 0.6,
+        "votes": 2
        },
        {
-        "n": 6,
+        "n": 5,
         "weight": 0.5,
         "votes": 1
        }
@@ -33175,7 +33150,7 @@
        7
       ],
       "alt": [
-       1
+       5
       ],
       "pick": 1,
       "label": "十位",
@@ -33188,23 +33163,23 @@
        },
        {
         "n": 0,
-        "weight": 0.9,
-        "votes": 3
-       },
-       {
-        "n": 1,
-        "weight": 0.9,
+        "weight": 0.8,
         "votes": 2
        },
        {
-        "n": 2,
-        "weight": 0,
-        "votes": 0
+        "n": 1,
+        "weight": 0.6,
+        "votes": 1
        },
        {
-        "n": 3,
-        "weight": 0,
-        "votes": 0
+        "n": 5,
+        "weight": 0.6,
+        "votes": 1
+       },
+       {
+        "n": 4,
+        "weight": 0.4,
+        "votes": 1
        }
       ]
      },
@@ -33213,7 +33188,7 @@
        4
       ],
       "alt": [
-       2
+       1
       ],
       "pick": 1,
       "label": "个位",
@@ -33225,29 +33200,29 @@
         "votes": 4
        },
        {
-        "n": 2,
-        "weight": 0.7,
-        "votes": 2
-       },
-       {
         "n": 1,
-        "weight": 0.6,
-        "votes": 2
+        "weight": 0.9,
+        "votes": 4
        },
        {
-        "n": 9,
+        "n": 5,
         "weight": 0.5,
         "votes": 1
        },
        {
-        "n": 8,
+        "n": 6,
         "weight": 0.5,
+        "votes": 1
+       },
+       {
+        "n": 7,
+        "weight": 0.4,
         "votes": 1
        }
       ]
      }
     },
-    "lockedAt": "2026-11-22T21:14:48.229Z"
+    "lockedAt": "2026-11-24T01:53:48.737Z"
    },
    "stats": {
     "n": 200,
@@ -33255,11 +33230,60 @@
     "randomExpect": 0.3,
     "diff": -0.015,
     "z": -0.41,
-    "altAvg": 0.32
+    "altAvg": 0.315
    }
   },
   "kl8": {
    "records": [
+    {
+     "issue": "2026313",
+     "date": "2026-11-23",
+     "zones": {
+      "main": {
+       "label": "号码",
+       "numbers": [
+        5,
+        9,
+        17,
+        20,
+        25,
+        35,
+        38,
+        55,
+        58,
+        75
+       ],
+       "actual": [
+        3,
+        19,
+        20,
+        22,
+        25,
+        27,
+        28,
+        35,
+        36,
+        40,
+        50,
+        52,
+        53,
+        56,
+        57,
+        64,
+        67,
+        69,
+        75,
+        77
+       ],
+       "hits": 4,
+       "pick": 10
+      }
+     },
+     "totalHits": 4,
+     "totalPick": 10,
+     "lockedAt": "2026-11-22T21:14:48.229Z",
+     "recordedAt": "2026-11-24T01:53:48.737Z"
+    },
     {
      "issue": "2026312",
      "date": "2026-11-22",
@@ -45545,98 +45569,36 @@
      "totalPick": 10,
      "backfilled": true,
      "recordedAt": "2026-11-19T05:23:40.547Z"
-    },
-    {
-     "issue": "2026113",
-     "date": "2026-05-03",
-     "zones": {
-      "main": {
-       "label": "号码",
-       "numbers": [
-        6,
-        7,
-        18,
-        22,
-        36,
-        44,
-        46,
-        53,
-        71,
-        74
-       ],
-       "alt": [
-        1,
-        10,
-        12,
-        18,
-        22,
-        38,
-        42,
-        67,
-        76,
-        78
-       ],
-       "actual": [
-        2,
-        5,
-        6,
-        9,
-        17,
-        19,
-        20,
-        26,
-        29,
-        31,
-        32,
-        33,
-        37,
-        40,
-        44,
-        53,
-        58,
-        62,
-        71,
-        78
-       ],
-       "hits": 4,
-       "altHits": 1,
-       "pick": 10
-      }
-     },
-     "totalHits": 4,
-     "totalPick": 10,
-     "backfilled": true,
-     "recordedAt": "2026-11-19T05:23:40.547Z"
     }
    ],
    "pending": {
-    "issue": "2026313",
-    "basedOn": "2026312",
+    "issue": "2026314",
+    "basedOn": "2026313",
     "zones": {
      "main": {
       "numbers": [
-       5,
        9,
        17,
-       20,
        25,
        35,
        38,
+       39,
        55,
        58,
-       75
+       65,
+       70
       ],
       "alt": [
        1,
-       3,
        9,
+       18,
        25,
-       30,
-       32,
-       40,
-       49,
+       38,
+       39,
+       50,
        58,
-       63
+       61,
+       75
       ],
       "pick": 10,
       "label": "号码",
@@ -45644,13 +45606,18 @@
       "top": [
        {
         "n": 58,
-        "weight": 1.9,
+        "weight": 2,
+        "votes": 6
+       },
+       {
+        "n": 35,
+        "weight": 1.7,
         "votes": 5
        },
        {
         "n": 25,
-        "weight": 1.6,
-        "votes": 3
+        "weight": 1.5,
+        "votes": 5
        },
        {
         "n": 38,
@@ -45658,19 +45625,14 @@
         "votes": 3
        },
        {
-        "n": 9,
-        "weight": 1.3,
+        "n": 55,
+        "weight": 1.2,
         "votes": 4
-       },
-       {
-        "n": 17,
-        "weight": 1.3,
-        "votes": 3
        }
       ]
      }
     },
-    "lockedAt": "2026-11-22T21:14:48.229Z"
+    "lockedAt": "2026-11-24T01:53:48.737Z"
    },
    "stats": {
     "n": 200,
@@ -45678,11 +45640,76 @@
     "randomExpect": 2.5,
     "diff": -0.015,
     "z": -0.14,
-    "altAvg": 2.45
+    "altAvg": 2.445
    }
   },
   "pl5": {
    "records": [
+    {
+     "issue": "26313",
+     "date": "2026-11-23",
+     "zones": {
+      "pos1": {
+       "label": "万位",
+       "numbers": [
+        6
+       ],
+       "actual": [
+        0
+       ],
+       "hits": 0,
+       "pick": 1
+      },
+      "pos2": {
+       "label": "千位",
+       "numbers": [
+        0
+       ],
+       "actual": [
+        3
+       ],
+       "hits": 0,
+       "pick": 1
+      },
+      "pos3": {
+       "label": "百位",
+       "numbers": [
+        5
+       ],
+       "actual": [
+        6
+       ],
+       "hits": 0,
+       "pick": 1
+      },
+      "pos4": {
+       "label": "十位",
+       "numbers": [
+        3
+       ],
+       "actual": [
+        6
+       ],
+       "hits": 0,
+       "pick": 1
+      },
+      "pos5": {
+       "label": "个位",
+       "numbers": [
+        5
+       ],
+       "actual": [
+        7
+       ],
+       "hits": 0,
+       "pick": 1
+      }
+     },
+     "totalHits": 0,
+     "totalPick": 5,
+     "lockedAt": "2026-11-22T21:14:48.229Z",
+     "recordedAt": "2026-11-24T01:53:48.737Z"
+    },
     {
      "issue": "26312",
      "date": "2026-11-22",
@@ -62517,100 +62544,15 @@
      "totalPick": 5,
      "backfilled": true,
      "recordedAt": "2026-11-19T05:23:40.547Z"
-    },
-    {
-     "issue": "26113",
-     "date": "2026-05-03",
-     "zones": {
-      "pos1": {
-       "label": "万位",
-       "numbers": [
-        5
-       ],
-       "alt": [
-        9
-       ],
-       "actual": [
-        9
-       ],
-       "hits": 0,
-       "altHits": 1,
-       "pick": 1
-      },
-      "pos2": {
-       "label": "千位",
-       "numbers": [
-        3
-       ],
-       "alt": [
-        4
-       ],
-       "actual": [
-        2
-       ],
-       "hits": 0,
-       "altHits": 0,
-       "pick": 1
-      },
-      "pos3": {
-       "label": "百位",
-       "numbers": [
-        9
-       ],
-       "alt": [
-        2
-       ],
-       "actual": [
-        5
-       ],
-       "hits": 0,
-       "altHits": 0,
-       "pick": 1
-      },
-      "pos4": {
-       "label": "十位",
-       "numbers": [
-        4
-       ],
-       "alt": [
-        8
-       ],
-       "actual": [
-        8
-       ],
-       "hits": 0,
-       "altHits": 1,
-       "pick": 1
-      },
-      "pos5": {
-       "label": "个位",
-       "numbers": [
-        3
-       ],
-       "alt": [
-        7
-       ],
-       "actual": [
-        5
-       ],
-       "hits": 0,
-       "altHits": 0,
-       "pick": 1
-      }
-     },
-     "totalHits": 0,
-     "totalPick": 5,
-     "backfilled": true,
-     "recordedAt": "2026-11-19T05:23:40.547Z"
     }
    ],
    "pending": {
-    "issue": "26313",
-    "basedOn": "26312",
+    "issue": "26314",
+    "basedOn": "26313",
     "zones": {
      "pos1": {
       "numbers": [
-       6
+       0
       ],
       "alt": [
        2
@@ -62620,9 +62562,14 @@
       "formulaCount": 16,
       "top": [
        {
+        "n": 0,
+        "weight": 1.1,
+        "votes": 3
+       },
+       {
         "n": 6,
-        "weight": 1.5,
-        "votes": 6
+        "weight": 1,
+        "votes": 3
        },
        {
         "n": 2,
@@ -62630,19 +62577,14 @@
         "votes": 2
        },
        {
-        "n": 3,
+        "n": 5,
         "weight": 0.8,
         "votes": 2
        },
        {
-        "n": 0,
+        "n": 1,
         "weight": 0.8,
         "votes": 2
-       },
-       {
-        "n": 7,
-        "weight": 0.6,
-        "votes": 1
        }
       ]
      },
@@ -62651,7 +62593,7 @@
        0
       ],
       "alt": [
-       7
+       4
       ],
       "pick": 1,
       "label": "千位",
@@ -62659,26 +62601,26 @@
       "top": [
        {
         "n": 0,
-        "weight": 1,
-        "votes": 5
+        "weight": 1.1,
+        "votes": 6
        },
        {
-        "n": 7,
-        "weight": 0.9,
-        "votes": 3
-       },
-       {
-        "n": 6,
-        "weight": 0.9,
-        "votes": 3
-       },
-       {
-        "n": 5,
+        "n": 3,
         "weight": 0.8,
         "votes": 2
        },
        {
-        "n": 4,
+        "n": 7,
+        "weight": 0.8,
+        "votes": 2
+       },
+       {
+        "n": 6,
+        "weight": 0.7,
+        "votes": 2
+       },
+       {
+        "n": 5,
         "weight": 0.5,
         "votes": 1
        }
@@ -62697,13 +62639,8 @@
       "top": [
        {
         "n": 5,
-        "weight": 0.9,
-        "votes": 3
-       },
-       {
-        "n": 0,
-        "weight": 0.8,
-        "votes": 2
+        "weight": 1,
+        "votes": 4
        },
        {
         "n": 2,
@@ -62711,13 +62648,18 @@
         "votes": 1
        },
        {
-        "n": 8,
+        "n": 7,
         "weight": 0.6,
         "votes": 1
        },
        {
-        "n": 1,
-        "weight": 0.6,
+        "n": 6,
+        "weight": 0.5,
+        "votes": 1
+       },
+       {
+        "n": 0,
+        "weight": 0.5,
         "votes": 1
        }
       ]
@@ -62740,23 +62682,23 @@
        },
        {
         "n": 4,
-        "weight": 1,
-        "votes": 3
+        "weight": 0.9,
+        "votes": 2
        },
        {
-        "n": 2,
+        "n": 7,
         "weight": 0.6,
+        "votes": 1
+       },
+       {
+        "n": 6,
+        "weight": 0.5,
         "votes": 1
        },
        {
         "n": 5,
         "weight": 0.5,
         "votes": 1
-       },
-       {
-        "n": 0,
-        "weight": 0,
-        "votes": 0
        }
       ]
      },
@@ -62773,8 +62715,18 @@
       "top": [
        {
         "n": 5,
-        "weight": 1.2,
-        "votes": 5
+        "weight": 0.9,
+        "votes": 3
+       },
+       {
+        "n": 6,
+        "weight": 0.8,
+        "votes": 2
+       },
+       {
+        "n": 8,
+        "weight": 0.8,
+        "votes": 2
        },
        {
         "n": 9,
@@ -62782,24 +62734,14 @@
         "votes": 2
        },
        {
-        "n": 4,
+        "n": 7,
         "weight": 0.6,
         "votes": 2
-       },
-       {
-        "n": 8,
-        "weight": 0.6,
-        "votes": 1
-       },
-       {
-        "n": 3,
-        "weight": 0.5,
-        "votes": 1
        }
       ]
      }
     },
-    "lockedAt": "2026-11-22T21:14:48.229Z"
+    "lockedAt": "2026-11-24T01:53:48.737Z"
    },
    "stats": {
     "n": 200,
@@ -62807,7 +62749,7 @@
     "randomExpect": 0.5,
     "diff": 0,
     "z": 0,
-    "altAvg": 0.55
+    "altAvg": 0.54
    }
   }
  }
